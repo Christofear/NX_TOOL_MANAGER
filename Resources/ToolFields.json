@@ -1,0 +1,212 @@
+{
+  "version": 1,
+  "generated": "2025-09-02T10:00:00Z",
+  "notes": "Extended mapping of NX field names to include descriptions, data types, and nullability for validation.",
+  "fields": {
+    "LIBRF": {
+      "description": "Tool library reference",
+      "type": "string",
+      "nullable": false
+    },
+    "T": {
+      "description": "Tool type",
+      "type": "string",
+      "nullable": false
+    },
+    "ST": {
+      "description": "Tool subtype",
+      "type": "string",
+      "nullable": false
+    },
+    "UGT": {
+      "description": "UG internal tool type",
+      "type": "string",
+      "nullable": false
+    },
+    "UGST": {
+      "description": "UG internal tool subtype",
+      "type": "string",
+      "nullable": false
+    },
+    "DESCR": {
+      "description": "Tool description",
+      "type": "string",
+      "nullable": true
+    },
+    "MATREF": {
+      "description": "Tool material code",
+      "type": "string",
+      "nullable": true
+    },
+    "MATDES": {
+      "description": "Tool material description",
+      "type": "string",
+      "nullable": true
+    },
+    "TLNUM": {
+      "description": "Tool number",
+      "type": "integer",
+      "nullable": false
+    },
+    "ADJREG": {
+      "description": "Length adjust register",
+      "type": "integer",
+      "nullable": true
+    },
+    "CUTCOMREG": {
+      "description": "CUTCOM register",
+      "type": "integer",
+      "nullable": true
+    },
+    "HLD": {
+      "description": "Holding system",
+      "type": "string",
+      "nullable": true
+    },
+    "HLDDES": {
+      "description": "Holding system description",
+      "type": "string",
+      "nullable": true
+    },
+    "DIA": {
+      "description": "Diameter",
+      "type": "double",
+      "nullable": false
+    },
+    "FN": {
+      "description": "Number of flutes",
+      "type": "integer",
+      "nullable": true
+    },
+    "HEI": {
+      "description": "Overall length",
+      "type": "double",
+      "nullable": false
+    },
+    "ZOFF": {
+      "description": "Z offset",
+      "type": "double",
+      "nullable": true
+    },
+    "DROT": {
+      "description": "Direction (3,4)",
+      "type": "integer",
+      "nullable": true
+    },
+    "FLEN": {
+      "description": "Flute length",
+      "type": "double",
+      "nullable": false
+    },
+    "SDIA": {
+      "description": "Neck diameter",
+      "type": "double",
+      "nullable": true
+    },
+    "LCOR": {
+      "description": "Lower corner radius",
+      "type": "double",
+      "nullable": true
+    },
+    "UCOR": {
+      "description": "Upper corner radius",
+      "type": "double",
+      "nullable": true
+    },
+    "CTH": {
+      "description": "Coolant through (0,1)",
+      "type": "boolean",
+      "nullable": true
+    },
+    "HOFF": {
+      "description": "Holder offset",
+      "type": "double",
+      "nullable": true
+    },
+    "HA": {
+      "description": "Helix angle",
+      "type": "double",
+      "nullable": true
+    },
+    "SHAREF": {
+      "description": "Shank reference",
+      "type": "string",
+      "nullable": true
+    },
+    "THRDS": {
+      "description": "Thread shape",
+      "type": "string",
+      "nullable": true
+    },
+    "THRDES": {
+      "description": "Thread description",
+      "type": "string",
+      "nullable": true
+    },
+    "PIT": {
+      "description": "Pitch",
+      "type": "double",
+      "nullable": true
+    },
+    "DESI": {
+      "description": "Designation",
+      "type": "string",
+      "nullable": true
+    },
+    "TIPA": {
+      "description": "Tip angle",
+      "type": "double",
+      "nullable": true
+    },
+    "CX1": {
+      "description": "Corner 1 center X",
+      "type": "double",
+      "nullable": true
+    },
+    "CY1": {
+      "description": "Corner 1 center Y",
+      "type": "double",
+      "nullable": true
+    },
+    "COR1": {
+      "description": "Corner radius 1",
+      "type": "double",
+      "nullable": true
+    },
+    "COR2": {
+      "description": "Corner radius 2",
+      "type": "double",
+      "nullable": true
+    },
+    "CX2": {
+      "description": "Corner 2 center X",
+      "type": "double",
+      "nullable": true
+    },
+    "CY2": {
+      "description": "Corner 2 center Y",
+      "type": "double",
+      "nullable": true
+    },
+    "PNTA": {
+      "description": "Point angle",
+      "type": "double",
+      "nullable": true
+    },
+    "PNTL": {
+      "description": "Point length",
+      "type": "double",
+      "nullable": true
+    },
+    "TIPLEN": {
+      "description": "Tip length",
+      "type": "double",
+      "nullable": true
+    },
+    "TDD": {
+      "description": "Taper diameter distance",
+      "type": "double",
+      "nullable": true
+    }
+  }
+}

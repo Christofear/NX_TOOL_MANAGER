@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36414.22 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NX_TOOL_MANAGER", "NX_TOOL_MANAGER.csproj", "{9C59BCFC-730B-40EA-880F-7F1D51664070}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9C59BCFC-730B-40EA-880F-7F1D51664070}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C59BCFC-730B-40EA-880F-7F1D51664070}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C59BCFC-730B-40EA-880F-7F1D51664070}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C59BCFC-730B-40EA-880F-7F1D51664070}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5B231717-A857-426C-B0F2-80A212A39593}
+	EndGlobalSection
+EndGlobal

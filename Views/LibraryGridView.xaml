@@ -1,0 +1,122 @@
+<UserControl x:Class="NX_TOOL_MANAGER.Views.LibraryGridView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <DataGrid x:Name="DataGrid"
+          AutoGenerateColumns="False"
+          IsReadOnly="True"
+          SelectionUnit="FullRow"
+          SelectionMode="Extended"
+          RowHeight="32"
+          HeadersVisibility="All"
+          CanUserAddRows="True"
+          CanUserDeleteRows="False"
+          ClipboardCopyMode="IncludeHeader"
+          GridLinesVisibility="All"
+          RowHeaderWidth="40"
+          EnableRowVirtualization="True"
+          EnableColumnVirtualization="True"
+          LoadingRow="DataGrid_LoadingRow"
+          CanUserSortColumns="False"
+          AlternatingRowBackground="#2A2A2A"
+          Background="#2D2D2D"
+          SelectedItem="{Binding SelectedRow, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+          PreviewMouseRightButtonDown="DataGrid_PreviewMouseRightButtonDown">
+
+            <DataGrid.Resources>
+                <!-- FIX #1: This style now completely replaces the default top-left button with a simple dark border -->
+                <Style x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type DataGrid}, ResourceId=SelectAllButtonStyleKey}" TargetType="{x:Type Button}">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="#3E3E42" BorderBrush="#4A4A4A" BorderThickness="0,0,1,1"/>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </DataGrid.Resources>
+
+            <DataGrid.Style>
+                <Style TargetType="DataGrid">
+                    <Setter Property="Background" Value="#2D2D2D"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="BorderBrush" Value="#4A4A4A"/>
+                    <Setter Property="HorizontalGridLinesBrush" Value="#4A4A4A"/>
+                    <Setter Property="VerticalGridLinesBrush" Value="#4A4A4A"/>
+                </Style>
+            </DataGrid.Style>
+
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="#3E3E42"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="BorderBrush" Value="#4A4A4A"/>
+                    <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                    <Setter Property="Padding" Value="6,4"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
+
+            <DataGrid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Copy cell" Click="CopyCell_Click"/>
+                    <MenuItem Header="Copy row"  Click="CopyRow_Click"/>
+                </ContextMenu>
+            </DataGrid.ContextMenu>
+
+            <!-- FIX #2: Added a custom template to force the row header content (the numbers) to be centered -->
+            <DataGrid.RowHeaderStyle>
+                <Style TargetType="DataGridRowHeader">
+                    <Setter Property="Background" Value="#2D2D2D"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="BorderBrush" Value="#4A4A4A"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="DataGridRowHeader">
+                                <Grid>
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="0,0,1,1"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"/>
+                                    </Border>
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </DataGrid.RowHeaderStyle>
+
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="Background" Value="#2D2D2D"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Height" Value="32"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#3E3E42"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsSelected" Value="True"/>
+                                <Condition Property="IsKeyboardFocusWithin" Value="True"/>
+                            </MultiTrigger.Conditions>
+                            <Setter Property="Background" Value="#3399FF"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </MultiTrigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsSelected" Value="True"/>
+                                <Condition Property="IsKeyboardFocusWithin" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <Setter Property="Background" Value="#3399FF"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </MultiTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+        </DataGrid>
+    </Grid>
+</UserControl>
+

@@ -1,0 +1,327 @@
+﻿<Window x:Class="NX_TOOL_MANAGER.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:NX_TOOL_MANAGER"
+        xmlns:views="clr-namespace:NX_TOOL_MANAGER.Views;assembly=NX_TOOL_MANAGER"
+        xmlns:conv="clr-namespace:NX_TOOL_MANAGER.Converters"
+        
+        Height="720" Width="1200" MinHeight="600" MinWidth="960"
+        FontFamily="Segoe UI"
+        Background="#1E1E1E"
+        Foreground="White"
+
+        WindowStyle="None" 
+        WindowStartupLocation="CenterScreen">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome ResizeBorderThickness="6" CaptionHeight="32" CornerRadius="0" GlassFrameThickness="0"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <conv:PageIsSelectedConverter x:Key="PageIsSelectedConverter"/>
+        <local:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <Style x:Key="ToolBarSeparatorStyle" TargetType="Separator">
+            <Setter Property="Background" Value="#4A4A4A"/>
+            <Setter Property="Width" Value="1"/>
+            <Setter Property="Margin" Value="8,12"/>
+        </Style>
+        <Style x:Key="{x:Static MenuItem.SeparatorStyleKey}" TargetType="Separator">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Separator">
+                        <Border Height="1" Margin="2,4" BorderBrush="#4A4A4A" BorderThickness="0,1,0,0" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="{x:Type MenuItem}">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type MenuItem}">
+                        <Grid>
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="true">
+                                <ContentPresenter ContentSource="Header" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                            </Border>
+                            <Popup x:Name="PART_Popup" AllowsTransparency="true" Focusable="false" IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" PopupAnimation="Fade">
+                                <Border x:Name="SubmenuBorder" Background="#2D2D2D" BorderBrush="#4A4A4A" BorderThickness="1">
+                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Role" Value="TopLevelHeader">
+                                <Setter Property="Padding" Value="7,5"/>
+                                <Setter Property="Background" TargetName="Bd" Value="Transparent"/>
+                                <Setter Property="Placement" TargetName="PART_Popup" Value="Bottom"/>
+                            </Trigger>
+                            <Trigger Property="Role" Value="SubmenuItem">
+                                <Setter Property="Padding" Value="8,6"/>
+                                <Setter Property="Placement" TargetName="PART_Popup" Value="Right"/>
+                            </Trigger>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter Property="Background" TargetName="Bd" Value="#3E3E42"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="WindowButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderThickness="0">
+                            <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#444444"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#666666"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="CloseButtonStyle" TargetType="Button" BasedOn="{StaticResource WindowButtonStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E81123"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#F1707A"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <!-- Shared template for square nav look -->
+        <ControlTemplate x:Key="SquareNavTemplate" TargetType="ContentControl">
+            <Border x:Name="border"
+            Background="{TemplateBinding Background}"
+            BorderBrush="{TemplateBinding BorderBrush}"
+            BorderThickness="{TemplateBinding BorderThickness}"
+            CornerRadius="6">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4">
+                    <TextBlock FontFamily="Segoe MDL2 Assets"
+                       FontSize="24"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,4"
+                       Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                       Foreground="{TemplateBinding Foreground}"/>
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                              HorizontalAlignment="Center"
+                              TextBlock.Foreground="{TemplateBinding Foreground}"/>
+                </StackPanel>
+            </Border>
+        </ControlTemplate>
+
+        <!-- 1) Regular button style (for Load/Save/Convert/Import/Export) -->
+        <Style x:Key="SquareNavButton" TargetType="Button">
+            <Setter Property="Width" Value="64"/>
+            <Setter Property="Height" Value="64"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="BorderBrush" Value="#4A4A4A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentControl Template="{StaticResource SquareNavTemplate}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Foreground="{TemplateBinding Foreground}"
+                                Content="{TemplateBinding Content}"
+                                Tag="{TemplateBinding Tag}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#454545"/>
+                    <Setter Property="BorderBrush" Value="#6A6A6A"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#2A2A2A"/>
+                    <Setter Property="BorderBrush" Value="#6A6A6A"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 2) Toggle button style (for Viewer/Bulk/Merger) -->
+        <Style x:Key="SquareNavToggleButton" TargetType="ToggleButton">
+            <Setter Property="Width" Value="64"/>
+            <Setter Property="Height" Value="64"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="BorderBrush" Value="#4A4A4A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="6">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4">
+                                <TextBlock FontFamily="Segoe MDL2 Assets"
+                                   FontSize="24"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,4"
+                                   Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                                   Foreground="{TemplateBinding Foreground}"/>
+                                <ContentPresenter Content="{TemplateBinding Content}"
+                                          HorizontalAlignment="Center"
+                                          TextBlock.Foreground="{TemplateBinding Foreground}"/>
+                            </StackPanel>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#454545"/>
+                    <Setter Property="BorderBrush" Value="#6A6A6A"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#2A2A2A"/>
+                    <Setter Property="BorderBrush" Value="#6A6A6A"/>
+                </Trigger>
+                <!-- Active page = only Foreground turns blue -->
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Foreground" Value="#3399FF"/>
+                    <!-- bright blue text + icon -->
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="{x:Type ToolBar}">
+            <Setter Property="SnapsToDevicePixels" Value="true" />
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Height" Value="72"/>
+            <Setter Property="Background" Value="#2D2D2D"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToolBar}">
+                        <Border x:Name="MainBorder" Background="{TemplateBinding Background}" BorderBrush="#4A4A4A" BorderThickness="0,0,0,1">
+                            <ToolBarPanel x:Name="PART_ToolBarPanel" IsItemsHost="true" Margin="0" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border BorderBrush="#4A4A4A" BorderThickness="1">
+        <DockPanel>
+            <Grid DockPanel.Dock="Top" Height="32" Background="#2D2D2D" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="&#xE713;" Grid.Column="0" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" FontSize="16" Foreground="#CCCCCC"/>
+
+                <!-- THIS IS THE FIX (PART 1): Allows clicks to pass through to the Menu -->
+                <Menu Grid.Column="0" VerticalAlignment="Center" Margin="35,0,0,0" Background="Transparent"
+                      WindowChrome.IsHitTestVisibleInChrome="True">
+                    <MenuItem Header="_File">
+                        <MenuItem Header="_New" Click="New_Click"/>
+                        <Separator/>
+                        <MenuItem Header="_Save" Click="SaveLibrary_Click"/>
+                        <MenuItem Header="Save _As..." Click="SaveAs_Click"/>
+                        <MenuItem Header="Save A_ll" Click="SaveAll_Click"/>
+                        <Separator/>
+                        <MenuItem Header="E_xit" Click="Exit_Click"/>
+                    </MenuItem>
+                    <MenuItem Header="_Preferences">
+                        <MenuItem Header="Application Settings..." Click="ApplicationSettings_Click"/>
+                        <MenuItem Header="Layout Settings..." Click="LayoutSettings_Click"/>
+                    </MenuItem>
+                    <MenuItem Header="_Help">
+                        <MenuItem Header="Help Topics" Click="HelpTopics_Click"/>
+                        <Separator/>
+                        <MenuItem Header="_About" Click="About_Click"/>
+                    </MenuItem>
+                </Menu>
+
+                <TextBlock Grid.Column="1" Text="NX Tool Manager" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#CCCCCC" FontWeight="SemiBold" IsHitTestVisible="False"/>
+
+                <!-- THIS IS THE FIX (PART 2): Allows clicks to pass through to the Min/Max/Close buttons -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource WindowButtonStyle}" Content="&#xE921;" Click="MinimizeButton_Click"/>
+                    <Button Style="{StaticResource WindowButtonStyle}" Content="&#xE922;" Click="MaximizeButton_Click"/>
+                    <Button Style="{StaticResource CloseButtonStyle}"  Content="&#xE8BB;" Click="CloseButton_Click"/>
+                </StackPanel>
+            </Grid>
+
+            <ToolBar DockPanel.Dock="Top">
+                <Button Style="{StaticResource SquareNavButton}" Margin="10,0,8,0" Content="Load Lib" Tag="&#xE8E5;" Click="LoadLibrary_Click"/>
+                <Button Style="{StaticResource SquareNavButton}" Content="Save Lib" Tag="&#xE74E;" Click="SaveLibrary_Click"/>
+                <Separator Style="{StaticResource ToolBarSeparatorStyle}"/>
+
+                <!-- Viewer -->
+                <ToggleButton Style="{StaticResource SquareNavToggleButton}"
+              Content="Viewer" Tag="&#xE8A3;"
+              IsChecked="{Binding CurrentPage,
+                                  RelativeSource={RelativeSource AncestorType=Window},
+                                  Converter={StaticResource PageIsSelectedConverter},
+                                  ConverterParameter={x:Static views:PageKind.Viewer}}"
+              Click="Viewer_Click"/>
+
+                <!-- Bulk Editor -->
+                <ToggleButton Style="{StaticResource SquareNavToggleButton}"
+              Content="Bulk Editor" Tag="&#xE70F;"
+              IsChecked="{Binding CurrentPage,
+                                  RelativeSource={RelativeSource AncestorType=Window},
+                                  Converter={StaticResource PageIsSelectedConverter},
+                                  ConverterParameter={x:Static views:PageKind.BulkEditor}}"
+              Click="BulkEditor_Click"/>
+
+                <!-- Merger -->
+                <ToggleButton Style="{StaticResource SquareNavToggleButton}"
+              Content="Merger" Tag="&#xE8AB;"
+              IsChecked="{Binding CurrentPage,
+                                  RelativeSource={RelativeSource AncestorType=Window},
+                                  Converter={StaticResource PageIsSelectedConverter},
+                                  ConverterParameter={x:Static views:PageKind.Merger}}"
+              Click="Merger_Click"/>
+
+
+                <Separator Style="{StaticResource ToolBarSeparatorStyle}"/>
+                <Button Style="{StaticResource SquareNavButton}" Content="Convert" Tag="&#xE72D;" Click="Convert_Click"/>
+                <Button Style="{StaticResource SquareNavButton}" Content="Import"  Tag="&#xE774;" Click="Import_Click"/>
+                <Button Style="{StaticResource SquareNavButton}" Content="Export"  Tag="&#xE778;" Click="Export_Click"/>
+            </ToolBar>
+
+
+            <Grid DockPanel.Dock="Bottom" Background="#2D2D2D">
+                <!-- Log panel code goes here -->
+            </Grid>
+
+            <ContentControl x:Name="PageHost"/>
+        </DockPanel>
+    </Border>
+</Window>
+
