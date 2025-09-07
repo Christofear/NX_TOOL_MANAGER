@@ -3,9 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using NX_TOOL_MANAGER.Models;
 
-namespace NX_TOOL_MANAGER
+namespace NX_TOOL_MANAGER.Services
 {
-    public static class ToolDatParser
+    /// <summary>
+    /// Parses NX ASCII trackpoint_database.dat files into a structured object model.
+    /// This structure is very similar to the tool_database.dat file.
+    /// </summary>
+    public static class TrackpointDatParser
     {
         private enum ParserState { BeforeFirstClass, InClassHeader, InFormat, InData, InClassFooter }
 
@@ -14,7 +18,7 @@ namespace NX_TOOL_MANAGER
             var doc = new DatDocument();
             var state = ParserState.BeforeFirstClass;
             DatClass currentClass = null;
-            bool unitsFound = false;
+            bool unitsFound = false; // Trackpoints files typically don't have units, but we check just in case.
 
             foreach (var line in lines)
             {
@@ -28,7 +32,6 @@ namespace NX_TOOL_MANAGER
                         state = ParserState.InClassFooter;
                     }
 
-                    // FIX: Set the parent document when creating a new class.
                     currentClass = new DatClass { ParentDocument = doc };
                     doc.Classes.Add(currentClass);
 
@@ -93,7 +96,6 @@ namespace NX_TOOL_MANAGER
                         break;
 
                     case ParserState.InData:
-                        // FIX: Set the parent class when creating a new row.
                         var newRow = new DatRow { ParentClass = currentClass };
                         newRow.RawLines.Add(line);
 
@@ -109,7 +111,7 @@ namespace NX_TOOL_MANAGER
             return doc;
         }
 
-        #region Helper Methods (Unchanged)
+        #region Helper Methods
         private static List<string> SplitPipeKeepEmpties(string line)
         {
             return line.Trim('|').Split('|').Select(s => s.Trim()).ToList();

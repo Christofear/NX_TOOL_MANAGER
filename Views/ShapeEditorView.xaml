@@ -1,0 +1,39 @@
+﻿<UserControl x:Class="NX_TOOL_MANAGER.Views.ShapeEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:NX_TOOL_MANAGER.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="400"
+             Background="#1E1E1E">
+    <DataGrid ItemsSource="{Binding ShapeRows}"
+              AutoGenerateColumns="False"
+              CanUserAddRows="True"
+              CanUserDeleteRows="True"
+              GridLinesVisibility="All"
+              Background="#2D2D2D"
+              Foreground="#F0F0F0"
+              BorderBrush="#4A4A4A"
+              HorizontalGridLinesBrush="#4A4A4A"
+              VerticalGridLinesBrush="#4A4A4A">
+        <DataGrid.ColumnHeaderStyle>
+            <Style TargetType="DataGridColumnHeader">
+                <Setter Property="Background" Value="#3E3E42"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="BorderBrush" Value="#4A4A4A"/>
+                <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                <Setter Property="Padding" Value="6,4"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </Style>
+        </DataGrid.ColumnHeaderStyle>
+        <DataGrid.Columns>
+            <DataGridTextColumn Header="Step" Binding="{Binding Map[SEQ]}" Width="*"/>
+            <DataGridTextColumn Header="Lower Diameter" Binding="{Binding Map[DIAM]}" Width="2*"/>
+            <DataGridTextColumn Header="Length" Binding="{Binding Map[LENGTH]}" Width="2*"/>
+            <DataGridTextColumn Header="Upper Diameter" Binding="{Binding Map[UDIAM]}" Width="2*"/>
+            <DataGridTextColumn Header="Taper Angle" Binding="{Binding Map[TAPER]}" Width="2*"/>
+            <DataGridTextColumn Header="Corner Radius" Binding="{Binding Map[CRAD]}" Width="2*"/>
+        </DataGrid.Columns>
+    </DataGrid>
+</UserControl>

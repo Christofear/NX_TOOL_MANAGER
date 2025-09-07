@@ -1,0 +1,146 @@
+﻿<UserControl x:Class="NX_TOOL_MANAGER.Views.ViewerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:NX_TOOL_MANAGER.Views"
+             xmlns:converters="clr-namespace:NX_TOOL_MANAGER"
+             Background="#1E1E1E" Foreground="White">
+    <UserControl.Resources>
+        <!-- Global resources for the view -->
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+        <Style TargetType="GridSplitter">
+            <Setter Property="Background" Value="#4A4A4A"/>
+            <Setter Property="Width" Value="3"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="ShowsPreview" Value="True"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.Resources>
+            <Style x:Key="PanelToggleButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="#CCCCCC"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Width" Value="34"/>
+                <Setter Property="Height" Value="34"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="3">
+                                <Path x:Name="ArrowPath"
+                                      Stroke="{TemplateBinding Foreground}"
+                                      StrokeThickness="1.5"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Center"
+                                      Data="M 6 4 L 2 8 L 6 12" />
+                                <!-- Default path for 'Collapse' arrow (<) -->
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="Content" Value="Expand">
+                                    <Setter TargetName="ArrowPath" Property="Data" Value="M 2 4 L 6 8 L 2 12" />
+                                    <!-- Path for 'Expand' arrow (>) -->
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <!--
+                                        THE FINAL FIX: Using the EXACT highlight color (#444444) from your MainWindow's WindowButtonStyle.
+                                    -->
+                                    <Setter Property="Background" Value="#444444"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </Grid.Resources>
+
+        <Grid.ColumnDefinitions>
+            <!-- Column 0: Class Tree Pane -->
+            <ColumnDefinition>
+                <ColumnDefinition.Style>
+                    <Style TargetType="ColumnDefinition">
+                        <Setter Property="Width" Value="Auto" />
+                        <Setter Property="MinWidth" Value="0" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsClassTreeExpanded}" Value="True">
+                                <Setter Property="Width" Value="300" />
+                                <Setter Property="MinWidth" Value="180" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ColumnDefinition.Style>
+            </ColumnDefinition>
+
+            <ColumnDefinition Width="Auto"/>
+            <!-- Column 2: Main Grid View -->
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto"/>
+
+            <!-- Column 4: Tool Visual Pane -->
+            <ColumnDefinition>
+                <ColumnDefinition.Style>
+                    <Style TargetType="ColumnDefinition">
+                        <Setter Property="Width" Value="Auto" />
+                        <Setter Property="MinWidth" Value="0" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsPreviewExpanded}" Value="True">
+                                <Setter Property="Width" Value="300" />
+                                <Setter Property="MinWidth" Value="250" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ColumnDefinition.Style>
+            </ColumnDefinition>
+        </Grid.ColumnDefinitions>
+
+        <!-- === CLASS TREE PANE (Column 0) === -->
+        <Grid Grid.Column="0" Background="#2D2D2D">
+            <!-- EXPANDED VIEW -->
+            <Grid Visibility="{Binding IsClassTreeExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <views:ClassTree x:Name="ClassTreeControl" SelectedItemChanged="ClassTree_SelectedItemChanged"/>
+                <Button Style="{StaticResource PanelToggleButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Collapse Library Tree" Content="Collapse" Click="ToggleClassTree_Click"/>
+            </Grid>
+
+            <!-- COLLAPSED VIEW -->
+            <DockPanel Background="#1E1E1E" Visibility="{Binding IsClassTreeExpanded, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}">
+                <Button DockPanel.Dock="Top" Style="{StaticResource PanelToggleButtonStyle}" ToolTip="Expand Library Tree" Content="Expand" Click="ToggleClassTree_Click"/>
+                <TextBlock Text="Library Tree" FontWeight="SemiBold" Foreground="#CCCCCC" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,10">
+                    <TextBlock.LayoutTransform>
+                        <RotateTransform Angle="-90"/>
+                    </TextBlock.LayoutTransform>
+                </TextBlock>
+            </DockPanel>
+        </Grid>
+
+        <!-- GridSplitter for Class Tree -->
+        <GridSplitter Grid.Column="1" Visibility="{Binding IsClassTreeExpanded, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+        <!-- === MAIN CONTENT (Column 2) === -->
+        <views:LibraryGridView Grid.Column="2" x:Name="GridView" />
+
+        <!-- GridSplitter for Tool Visual Pane -->
+        <GridSplitter Grid.Column="3" Visibility="{Binding IsPreviewExpanded, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+        <!-- === TOOL VISUAL PANE (Column 4) === -->
+        <Grid Grid.Column="4" Background="#2D2D2D">
+            <!-- EXPANDED VIEW -->
+            <Grid Visibility="{Binding IsPreviewExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <views:PreviewPane x:Name="ThePreviewPane" SelectedRow="{Binding ElementName=GridView, Path=SelectedRow}"/>
+                <Button Style="{StaticResource PanelToggleButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Collapse Tool Visual" Content="Collapse" Click="TogglePreview_Click"/>
+            </Grid>
+
+            <!-- COLLAPSED VIEW -->
+            <DockPanel Background="#1E1E1E" Visibility="{Binding IsPreviewExpanded, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}">
+                <Button DockPanel.Dock="Top" Style="{StaticResource PanelToggleButtonStyle}" ToolTip="Expand Tool Visual" Content="Expand" Click="TogglePreview_Click"/>
+                <TextBlock Text="Tool Visual" FontWeight="SemiBold" Foreground="#CCCCCC" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,10">
+                    <TextBlock.LayoutTransform>
+                        <RotateTransform Angle="-90"/>
+                    </TextBlock.LayoutTransform>
+                </TextBlock>
+            </DockPanel>
+        </Grid>
+    </Grid>
+</UserControl>
+

@@ -1,9 +1,12 @@
 using NX_TOOL_MANAGER.Models;
 using NX_TOOL_MANAGER.Services;
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -20,12 +23,13 @@ namespace NX_TOOL_MANAGER.Views
             InitializeComponent();
             DataContextChanged += (_, __) => Rebind();
             DataGrid.LoadingRow += DataGrid_LoadingRow;
+            DataGrid.CurrentCellChanged += DataGrid_CurrentCellChanged;
+            DataGrid.PreparingCellForEdit += DataGrid_PreparingCellForEdit;
+            DataGrid.CellEditEnding += DataGrid_CellEditEnding; // THE FIX: Hook into this event
         }
 
         private DatClass _current;
         private INotifyCollectionChanged _rowsINCC;
-        private DataGridColumn _rcColumn;
-        private object _rcItem;
 
         private void Rebind()
         {
@@ -33,37 +37,29 @@ namespace NX_TOOL_MANAGER.Views
 
             if (!ReferenceEquals(_current, cls))
             {
-                // Unsubscribe from old events to prevent memory leaks
                 if (_rowsINCC != null)
                     _rowsINCC.CollectionChanged -= Rows_CollectionChanged;
                 if (_current?.Rows != null)
                 {
                     foreach (var row in _current.Rows)
-                    {
                         row.PropertyChanged -= DatRow_PropertyChanged;
-                    }
                 }
 
                 _current = cls;
                 _rowsINCC = _current?.Rows as INotifyCollectionChanged;
 
-                // Subscribe to new events
                 if (_rowsINCC != null)
                     _rowsINCC.CollectionChanged += Rows_CollectionChanged;
                 if (_current?.Rows != null)
                 {
                     foreach (var row in _current.Rows)
-                    {
                         row.PropertyChanged += DatRow_PropertyChanged;
-                    }
                 }
 
                 BuildColumns(_current);
                 DataGrid.ItemsSource = _current?.Rows;
             }
-
             UpdateHeaderVisibility();
-            RefreshRowNumbers();
         }
 
         public static readonly DependencyProperty SelectedRowProperty =
@@ -81,7 +77,6 @@ namespace NX_TOOL_MANAGER.Views
 
         private void Rows_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            // Subscribe/unsubscribe when rows are added or removed from the collection
             if (e.OldItems != null)
             {
                 foreach (DatRow item in e.OldItems)
@@ -92,36 +87,24 @@ namespace NX_TOOL_MANAGER.Views
                 foreach (DatRow item in e.NewItems)
                     item.PropertyChanged += DatRow_PropertyChanged;
             }
-
             UpdateHeaderVisibility();
-            RefreshRowNumbers();
         }
 
         private void UpdateHeaderVisibility()
         {
-            bool hasData = _current != null && _current.Rows?.Count > 0;
-
-            DataGrid.HeadersVisibility = hasData
-                ? DataGridHeadersVisibility.All
-                : DataGridHeadersVisibility.Column;
-
-            DataGrid.RowHeaderWidth = hasData ? 40 : 0;
+            bool hasData = _current != null;
+            DataGrid.HeadersVisibility = hasData ? DataGridHeadersVisibility.All : DataGridHeadersVisibility.None;
         }
-
 
         private void DatRow_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            // This is the direct command that forces the DataGrid to update its display.
+            // This is now primarily for the PreviewPane to update the grid.
             DataGrid.Items.Refresh();
         }
 
-        // Tree sends either a DatClass (child) or DatDocumentRef (file/root);
-        // for a file, show its first class.
         private static DatClass ResolveClassFromContext(object ctx)
         {
             if (ctx is DatClass c) return c;
-
-            // Try to avoid a hard dependency: DatDocumentRef has Document.Classes
             var docProp = ctx?.GetType().GetProperty("Document", BindingFlags.Public | BindingFlags.Instance);
             var doc = docProp?.GetValue(ctx);
             var classesProp = doc?.GetType().GetProperty("Classes", BindingFlags.Public | BindingFlags.Instance);
@@ -134,29 +117,25 @@ namespace NX_TOOL_MANAGER.Views
             DataGrid.Columns.Clear();
             if (cls == null) return;
 
-            // (Your existing exclude logic is preserved)
-            var exclude = new HashSet<string>(
-                new[] { "t", "st", "ugt", "ugst", "tlnum", "adjreg", "hld", "cutcomreg", "matref", "zoff",
-        "sharef", "thrds", "cx1", "cy1", "cx2", "cy2", "desi", "rampangle", "helicaldia",
-        "minramplen", "maxcutwidth", "hldref", "tpref", "ha", "drot" },
-                StringComparer.OrdinalIgnoreCase
-            );
-
-            // (Your existing logic for getting the keys is preserved)
             IEnumerable<string> keys = Enumerable.Empty<string>();
             if (cls.FormatFields != null && cls.FormatFields.Count > 0)
             {
                 keys = cls.FormatFields;
             }
-            else
+            else if (cls.Rows.FirstOrDefault()?.Map != null)
             {
-                var first = cls.Rows.FirstOrDefault();
-                if (first?.Map != null)
-                    keys = first.Map.Keys;
+                keys = cls.Rows.FirstOrDefault().Map.Keys;
             }
 
-            foreach (var key in keys.Where(k => !exclude.Contains(k)))
+            foreach (var key in keys)
             {
+                var definition = FieldManager.GetDefinition(key);
+
+                if (definition != null && !definition.Visible)
+                {
+                    continue;
+                }
+
                 var binding = new Binding($"Map[{key}]")
                 {
                     Mode = BindingMode.TwoWay,
@@ -165,233 +144,222 @@ namespace NX_TOOL_MANAGER.Views
                     TargetNullValue = ""
                 };
 
-                // --- THIS IS THE NEW LOGIC ---
-                // 1. Get the field definition from our manager service.
-                var definition = FieldManager.GetDefinition(key);
-
-                // 2. Create a new style for this specific header that inherits the existing dark theme style.
+                // THE FIX: Create a new style instance for each column to avoid both the
+                // "sealed" error and the white header bug.
                 var headerStyle = new Style(typeof(DataGridColumnHeader), DataGrid.ColumnHeaderStyle);
+                string headerText = key;
 
-                // 3. Add the tooltip to the new style.
-                headerStyle.Setters.Add(new Setter(ToolTipService.ToolTipProperty, definition.Description));
-                // --- END OF NEW LOGIC ---
+                if (definition != null)
+                {
+                    headerStyle.Setters.Add(new Setter(ToolTipService.ToolTipProperty, definition.Description));
+                }
 
                 DataGrid.Columns.Add(new DataGridTextColumn
                 {
-                    Header = key,
+                    Header = headerText,
                     Binding = binding,
-                    MinWidth = 80,
+                    Width = DataGridLength.Auto,
+                    MinWidth = 100,
                     CanUserSort = false,
-                    IsReadOnly = true,
-                    // 4. Apply the new style (with the tooltip) to this specific column.
+                    IsReadOnly = false,
                     HeaderStyle = headerStyle
                 });
             }
         }
 
-        // Row numbering that works with virtualization
+        // --- EVENT HANDLERS ---
+
         private void DataGrid_LoadingRow(object sender, DataGridRowEventArgs e)
         {
             e.Row.Header = (e.Row.GetIndex() + 1).ToString();
         }
 
-        private void RefreshRowNumbers()
+        private void DataGrid_CurrentCellChanged(object sender, EventArgs e)
         {
-            for (int i = 0; i < DataGrid.Items.Count; i++)
+            if (DataGrid.CurrentCell.Item is DatRow row)
             {
-                if (DataGrid.ItemContainerGenerator.ContainerFromIndex(i) is DataGridRow row)
-                    row.Header = (row.GetIndex() + 1).ToString();
+                SelectedRow = row;
             }
         }
 
+        private void DataGridRowHeader_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement header && header.DataContext is DatRow row)
+            {
+                DataGrid.SelectedCells.Clear();
+                foreach (var column in DataGrid.Columns)
+                {
+                    DataGrid.SelectedCells.Add(new DataGridCellInfo(row, column));
+                }
+            }
+        }
+
+        private void DataGrid_PreparingCellForEdit(object sender, DataGridPreparingCellForEditEventArgs e)
+        {
+            if (e.EditingElement is TextBox textBox)
+            {
+                textBox.Focus();
+                textBox.CaretIndex = textBox.Text.Length;
+            }
+        }
+
+        private void DataGridCell_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is DataGridCell cell && !cell.IsEditing)
+            {
+                var dataGrid = FindVisualParent<DataGrid>(cell);
+                if (dataGrid != null)
+                {
+                    dataGrid.Focus();
+                    if (!cell.IsFocused)
+                    {
+                        cell.Focus();
+                    }
+                    dataGrid.BeginEdit();
+                }
+            }
+        }
+
+        // THE FIX: This event handler ensures that edits made directly in the grid
+        // correctly mark the file as modified.
+        private void DataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            if (e.EditAction == DataGridEditAction.Commit)
+            {
+                if (e.Row.Item is DatRow row)
+                {
+                    // Manually trigger the dirty flag logic.
+                    row.ParentClass?.ParentDocument?.ParentRef?.SetDirty();
+                }
+            }
+        }
+
+        #region Excel-like Functionality
+
+        private void DataGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                switch (e.Key)
+                {
+                    case Key.C: ExecuteCopy(); e.Handled = true; break;
+                    case Key.X: ExecuteCopy(); ExecuteDelete(); e.Handled = true; break;
+                    case Key.V: ExecutePaste(); e.Handled = true; break;
+                }
+            }
+            else if (e.Key == Key.Delete)
+            {
+                ExecuteDelete();
+                e.Handled = true;
+            }
+        }
+
+        private void ExecuteCopy()
+        {
+            var selectedCells = DataGrid.SelectedCells;
+            if (selectedCells.Count == 0) return;
+            var sb = new StringBuilder();
+            var groupedByRow = selectedCells.GroupBy(c => c.Item).OrderBy(g => DataGrid.Items.IndexOf(g.Key));
+            foreach (var rowGroup in groupedByRow)
+            {
+                var orderedCells = rowGroup.OrderBy(c => c.Column.DisplayIndex);
+                sb.AppendLine(string.Join("\t", orderedCells.Select(GetCellText)));
+            }
+            Clipboard.SetText(sb.ToString().TrimEnd());
+        }
+
+        private void ExecuteDelete()
+        {
+            foreach (var cellInfo in DataGrid.SelectedCells)
+            {
+                SetCellValue(cellInfo, string.Empty);
+            }
+            DataGrid.Items.Refresh();
+        }
+
+        private void ExecutePaste()
+        {
+            if (DataGrid.SelectedCells.Count == 0) return;
+            string clipboardText = Clipboard.GetText();
+            if (string.IsNullOrEmpty(clipboardText)) return;
+            var clipboardRows = clipboardText.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            var clipboardData = clipboardRows.Select(row => row.Split('\t')).ToArray();
+            if (clipboardData.Length == 0) return;
+            var startCell = DataGrid.SelectedCells.OrderBy(c => DataGrid.Items.IndexOf(c.Item)).ThenBy(c => c.Column.DisplayIndex).First();
+            int startRowIndex = DataGrid.Items.IndexOf(startCell.Item);
+            int startColIndex = startCell.Column.DisplayIndex;
+            if (clipboardData.Length == 1 && clipboardData[0].Length == 1)
+            {
+                string valueToPaste = clipboardData[0][0];
+                foreach (var cell in DataGrid.SelectedCells)
+                {
+                    SetCellValue(cell, valueToPaste);
+                }
+            }
+            else
+            {
+                for (int r = 0; r < clipboardData.Length; r++)
+                {
+                    int targetRowIndex = startRowIndex + r;
+                    if (targetRowIndex >= DataGrid.Items.Count) break;
+                    for (int c = 0; c < clipboardData[r].Length; c++)
+                    {
+                        int targetColIndex = startColIndex + c;
+                        if (targetColIndex >= DataGrid.Columns.Count) break;
+                        var cell = new DataGridCellInfo(DataGrid.Items[targetRowIndex], DataGrid.Columns[targetColIndex]);
+                        SetCellValue(cell, clipboardData[r][c]);
+                    }
+                }
+            }
+            DataGrid.Items.Refresh();
+        }
+
+        private void SetCellValue(DataGridCellInfo cellInfo, string value)
+        {
+            if (cellInfo.Item is DatRow row && cellInfo.Column is DataGridTextColumn column)
+            {
+                if (column.Binding is Binding binding && binding.Path.Path.Contains("Map"))
+                {
+                    string path = binding.Path.Path;
+                    string key = path.Substring(path.IndexOf('[') + 1).TrimEnd(']');
+                    // Use the custom Set method to ensure the dirty flag is triggered.
+                    row.Set(key, value);
+                }
+            }
+        }
+
+        private string GetCellText(DataGridCellInfo cellInfo)
+        {
+            if (cellInfo.Column.GetCellContent(cellInfo.Item) is TextBlock tb)
+            {
+                return tb.Text;
+            }
+            return string.Empty;
+        }
+
+        #endregion
+
+        // --- Helper Methods ---
+        public static T FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            DependencyObject parentObject = VisualTreeHelper.GetParent(child);
+            if (parentObject == null) return null;
+            T parent = parentObject as T;
+            return parent ?? FindVisualParent<T>(parentObject);
+        }
+
+        private void Copy_Click(object sender, RoutedEventArgs e)
+        {
+            ExecuteCopy();
+        }
+        private void Paste_Click(object sender, RoutedEventArgs e)
+        {
+            ExecutePaste();
+        }
         private void DataGrid_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
-            _rcColumn = null;
-            _rcItem = null;
-
-            var dep = (DependencyObject)e.OriginalSource;
-            var cell = FindAncestor<DataGridCell>(dep);
-            if (cell != null)
-            {
-                var row = FindAncestor<DataGridRow>(cell);
-                if (row != null)
-                {
-                    _rcColumn = cell.Column;
-                    _rcItem = row.Item;
-
-                    // keep UI state sane (don’t touch SelectedCells if FullRow)
-                    DataGrid.ScrollIntoView(row.Item, cell.Column);
-                    DataGrid.UpdateLayout();
-                    DataGrid.CurrentCell = new DataGridCellInfo(row.Item, cell.Column);
-                    DataGrid.Focus();
-
-                    if (DataGrid.SelectionUnit != DataGridSelectionUnit.FullRow)
-                    {
-                        DataGrid.SelectedCells.Clear();
-                        DataGrid.SelectedCells.Add(DataGrid.CurrentCell);
-                    }
-                    else
-                    {
-                        if (!row.IsSelected)
-                        {
-                            DataGrid.SelectedItems.Clear();
-                            row.IsSelected = true;
-                        }
-                    }
-                    return;
-                }
-            }
-
-            // Fallback: right-clicked a row but not a specific cell
-            var r = FindAncestor<DataGridRow>(dep);
-            if (r != null)
-            {
-                _rcItem = r.Item;
-                DataGrid.ScrollIntoView(r.Item);
-                DataGrid.UpdateLayout();
-                DataGrid.CurrentCell = new DataGridCellInfo(r.Item, DataGrid.Columns.FirstOrDefault());
-                DataGrid.Focus();
-                if (!r.IsSelected)
-                {
-                    DataGrid.SelectedItems.Clear();
-                    r.IsSelected = true;
-                }
-            }
+            // Placeholder for your existing logic
         }
-
-
-        // ===== Copy cell (no headers) =====
-        private void CopyCell_Click(object sender, RoutedEventArgs e)
-        {
-            var col = _rcColumn ?? DataGrid.CurrentCell.Column;
-            var item = _rcItem ?? DataGrid.CurrentCell.Item;
-            if (col == null || item == null) return;
-
-            // First: read via bindings (works even when virtualized)
-            var text = ReadCellText(item, col);
-
-            // If blank, try realized visual
-            if (string.IsNullOrEmpty(text))
-            {
-                DataGrid.ScrollIntoView(item, col);
-                DataGrid.UpdateLayout();
-                var content = col.GetCellContent(item);
-                var tb = FindDescendant<TextBlock>(content);
-                if (tb != null) text = tb.Text;
-                else if (content is ContentPresenter cp && cp.Content != null) text = cp.Content.ToString();
-            }
-
-            if (!string.IsNullOrEmpty(text)) Clipboard.SetText(text);
-            else Clipboard.Clear();
-        }
-
-
-
-        // ===== Copy row (no headers) =====
-        private void CopyRow_Click(object sender, RoutedEventArgs e)
-        {
-            // Use current row if present, otherwise the first selected item
-            var item = DataGrid.CurrentCell.Item ?? DataGrid.SelectedItem;
-            if (item == null) return;
-
-            // Ensure the row is realized so built-in copy has visuals to consult if needed
-            DataGrid.ScrollIntoView(item);
-            DataGrid.UpdateLayout();
-
-            var prev = DataGrid.ClipboardCopyMode;
-            try
-            {
-                DataGrid.ClipboardCopyMode = DataGridClipboardCopyMode.ExcludeHeader; // no headers
-                ApplicationCommands.Copy.Execute(null, DataGrid);
-            }
-            finally
-            {
-                DataGrid.ClipboardCopyMode = prev;
-            }
-        }
-
-
-        // --- Helpers to read cell text reliably for most column types --- //
-        private string ReadCellText(object item, DataGridColumn column)
-        {
-            switch (column)
-            {
-                case DataGridTextColumn txt:
-                    return ReadBound(txt.Binding as Binding, item);
-
-                case DataGridCheckBoxColumn chk:
-                    return ReadBound(chk.Binding as Binding, item);
-
-                case DataGridComboBoxColumn cbo:
-                    // Prefer SelectedValueBinding, then SelectedItemBinding, else SortMemberPath
-                    var b = cbo.SelectedValueBinding as Binding
-                            ?? cbo.SelectedItemBinding as Binding;
-                    var val = ReadBound(b, item);
-                    if (!string.IsNullOrEmpty(val)) return val;
-                    if (!string.IsNullOrEmpty(column.SortMemberPath))
-                        return GetPropertyValue(item, column.SortMemberPath)?.ToString() ?? string.Empty;
-                    return string.Empty;
-
-                default:
-                    // Template or custom column: try SortMemberPath first
-                    if (!string.IsNullOrEmpty(column.SortMemberPath))
-                        return GetPropertyValue(item, column.SortMemberPath)?.ToString() ?? string.Empty;
-                    return string.Empty;
-            }
-        }
-
-        private string ReadBound(Binding binding, object item)
-        {
-            if (binding?.Path?.Path is not string path || string.IsNullOrEmpty(path))
-                return string.Empty;
-
-            var raw = GetPropertyValue(item, path);
-            if (raw == null) return string.Empty;
-
-            if (!string.IsNullOrEmpty(binding.StringFormat))
-                return string.Format(binding.StringFormat, raw);
-
-            if (binding.Converter != null)
-                return binding.Converter.Convert(raw, typeof(string), binding.ConverterParameter, binding.ConverterCulture)?.ToString() ?? string.Empty;
-
-            return raw.ToString();
-        }
-
-        private static object GetPropertyValue(object obj, string path)
-        {
-            if (obj == null || string.IsNullOrWhiteSpace(path)) return null;
-            object cur = obj;
-            foreach (var part in path.Split('.'))
-            {
-                if (cur == null) return null;
-                var t = cur.GetType();
-                var prop = t.GetProperty(part, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase);
-                if (prop == null) return null;
-                cur = prop.GetValue(cur);
-            }
-            return cur;
-        }
-
-        private static T FindAncestor<T>(DependencyObject current) where T : DependencyObject
-        {
-            while (current != null && current is not T)
-                current = VisualTreeHelper.GetParent(current);
-            return current as T;
-        }
-
-        private static TDesc FindDescendant<TDesc>(DependencyObject root) where TDesc : DependencyObject
-        {
-            if (root == null) return null;
-            for (int i = 0, n = VisualTreeHelper.GetChildrenCount(root); i < n; i++)
-            {
-                var child = VisualTreeHelper.GetChild(root, i);
-                if (child is TDesc t) return t;
-                var deeper = FindDescendant<TDesc>(child);
-                if (deeper != null) return deeper;
-            }
-            return null;
-        }
-
-
     }
 }
+

@@ -2,211 +2,345 @@
   "version": 1,
   "generated": "2025-09-02T10:00:00Z",
   "notes": "Extended mapping of NX field names to include descriptions, data types, and nullability for validation.",
+  "categories": {
+    "Library": {
+      "displayOrder": 10,
+      "defaultExpanded": true,
+      "visible": true
+    },
+    "Dimensions": {
+      "displayOrder": 20,
+      "defaultExpanded": true,
+      "visible": true
+    },
+    "Numbers": {
+      "displayOrder": 30,
+      "defaultExpanded": true,
+      "visible": true
+    },
+    "Holder": {
+      "displayOrder": 40,
+      "defaultExpanded": false,
+      "visible": true
+    },
+    "Shank": {
+      "displayOrder": 50,
+      "defaultExpanded": false,
+      "visible": true
+    },
+    "Offsets": {
+      "displayOrder": 60,
+      "defaultExpanded": false,
+      "visible": true
+    },
+    "Material": {
+      "displayOrder": 70,
+      "defaultExpanded": false,
+      "visible": true
+    },
+    "Machine": {
+      "displayOrder": 80,
+      "defaultExpanded": false,
+      "visible": false
+    },
+    "Type": {
+      "displayOrder": 90,
+      "defaultExpanded": false,
+      "visible": false
+    },
+    "Miscelaneous": {
+      "displayOrder": 999,
+      "defaultExpanded": false,
+      "visible": true
+    }
+  },
   "fields": {
     "LIBRF": {
       "description": "Tool library reference",
       "type": "string",
-      "nullable": false
+      "nullable": false,
+      "category": "Library",
+      "required": true
     },
     "T": {
       "description": "Tool type",
       "type": "string",
-      "nullable": false
+      "nullable": false,
+      "category": "Type",
+      "required": true
     },
     "ST": {
       "description": "Tool subtype",
       "type": "string",
-      "nullable": false
+      "nullable": false,
+      "category": "Type",
+      "required": true
     },
     "UGT": {
       "description": "UG internal tool type",
       "type": "string",
-      "nullable": false
+      "nullable": false,
+      "category": "Type",
+      "required": true
     },
     "UGST": {
       "description": "UG internal tool subtype",
       "type": "string",
-      "nullable": false
+      "nullable": false,
+      "category": "Type",
+      "required": true
     },
     "DESCR": {
       "description": "Tool description",
       "type": "string",
-      "nullable": true
+      "nullable": true,
+      "category": "Library",
+      "required": false
     },
     "MATREF": {
       "description": "Tool material code",
       "type": "string",
-      "nullable": true
+      "nullable": true,
+      "category": "Material",
+      "required": false
     },
     "MATDES": {
       "description": "Tool material description",
       "type": "string",
-      "nullable": true
+      "nullable": true,
+      "category": "Material",
+      "required": false
     },
     "TLNUM": {
       "description": "Tool number",
       "type": "integer",
-      "nullable": false
+      "nullable": false,
+      "category": "Numbers",
+      "required": false
     },
     "ADJREG": {
       "description": "Length adjust register",
       "type": "integer",
-      "nullable": true
+      "nullable": true,
+      "category": "Numbers",
+      "required": false
     },
     "CUTCOMREG": {
       "description": "CUTCOM register",
       "type": "integer",
-      "nullable": true
+      "nullable": true,
+      "category": "Numbers",
+      "required": false
     },
     "HLD": {
       "description": "Holding system",
       "type": "string",
-      "nullable": true
+      "nullable": true,
+      "category": "Holding System",
+      "required": false
     },
     "HLDDES": {
       "description": "Holding system description",
       "type": "string",
-      "nullable": true
+      "nullable": true,
+      "category": "Holding System",
+      "required": false
     },
     "DIA": {
       "description": "Diameter",
       "type": "double",
-      "nullable": false
+      "nullable": false,
+      "category": "Dimensions",
+      "required": false
     },
     "FN": {
       "description": "Number of flutes",
       "type": "integer",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "HEI": {
       "description": "Overall length",
       "type": "double",
-      "nullable": false
+      "nullable": false,
+      "category": "Dimensions",
+      "required": false
     },
     "ZOFF": {
       "description": "Z offset",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Offsets",
+      "required": false
     },
     "DROT": {
       "description": "Direction (3,4)",
       "type": "integer",
-      "nullable": true
+      "nullable": true,
+      "category": "Machine",
+      "required": false
     },
     "FLEN": {
       "description": "Flute length",
       "type": "double",
-      "nullable": false
+      "nullable": false,
+      "category": "Dimensions",
+      "required": false
     },
     "SDIA": {
       "description": "Neck diameter",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "LCOR": {
       "description": "Lower corner radius",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "UCOR": {
       "description": "Upper corner radius",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "CTH": {
       "description": "Coolant through (0,1)",
       "type": "boolean",
-      "nullable": true
+      "nullable": true,
+      "category": "Machine",
+      "required": false
     },
     "HOFF": {
       "description": "Holder offset",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Holder",
+      "required": false
     },
     "HA": {
       "description": "Helix angle",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "",
+      "required": false
     },
     "SHAREF": {
       "description": "Shank reference",
       "type": "string",
-      "nullable": true
+      "nullable": true,
+      "category": "Shank",
+      "required": false
     },
     "THRDS": {
       "description": "Thread shape",
       "type": "string",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "THRDES": {
       "description": "Thread description",
       "type": "string",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "PIT": {
       "description": "Pitch",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "DESI": {
       "description": "Designation",
       "type": "string",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "TIPA": {
       "description": "Tip angle",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "CX1": {
       "description": "Corner 1 center X",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "CY1": {
       "description": "Corner 1 center Y",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "COR1": {
       "description": "Corner radius 1",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "COR2": {
       "description": "Corner radius 2",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "CX2": {
       "description": "Corner 2 center X",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "CY2": {
       "description": "Corner 2 center Y",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "PNTA": {
       "description": "Point angle",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "PNTL": {
       "description": "Point length",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "TIPLEN": {
       "description": "Tip length",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     },
     "TDD": {
       "description": "Taper diameter distance",
       "type": "double",
-      "nullable": true
+      "nullable": true,
+      "category": "Dimensions",
+      "required": false
     }
   }
-}
+  }

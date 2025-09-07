@@ -2,45 +2,64 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
-// UPDATED: Namespace reflects the "Models" folder
 namespace NX_TOOL_MANAGER.Models
 {
     public sealed class DatDocument
     {
+        [JsonIgnore]
+        public DatDocumentRef ParentRef { get; set; }
+
+        public string Units { get; set; } = "Unknown";
         public List<string> Head { get; } = new();
         public List<DatClass> Classes { get; } = new();
     }
 
     public sealed class DatClass
     {
+        [JsonIgnore]
+        public DatDocument ParentDocument { get; set; }
+
         public string Name { get; set; } = string.Empty;
         public string DisplayName => string.IsNullOrWhiteSpace(Name) ? "(Unnamed Class)" : Name;
-
-        // New: handy read-only string for the tree header
         public string DisplayHeader => $"{DisplayName} ({Rows.Count})";
 
-        public List<string> FormatFields { get; } = new();
+        public List<string> PreClassLines { get; } = new();
+        public string ClassLine { get; set; }
+        public List<string> PreFormatLines { get; } = new();
+        public List<string> FormatLines { get; } = new();
+        public List<string> PreDataLines { get; } = new();
         public ObservableCollection<DatRow> Rows { get; } = new();
+        public List<string> PostDataLines { get; } = new();
+
+        public List<string> FormatFields { get; } = new();
         public List<DatClass> Children { get; } = new();
     }
 
-
-    // UPDATED: DatRow now notifies the UI when its data changes
     public sealed class DatRow : INotifyPropertyChanged
     {
+        [JsonIgnore]
+        public DatClass ParentClass { get; set; }
+
         public List<string> RawLines { get; } = new();
         public List<string> Values { get; } = new();
-        public Dictionary<string, string> Map { get; } = new();
+        public Dictionary<string, string> Map { get; } = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
 
         public string Get(string field) => Map.TryGetValue(field, out var v) ? v : string.Empty;
 
-        // ADDED: A method to set values that also notifies the UI to refresh
         public void Set(string field, string value)
         {
+            if (Map.TryGetValue(field, out var oldValue) && oldValue == value)
+            {
+                return;
+            }
+
             Map[field] = value;
-            // This tells the DataGrid that the specific cell's value has changed
             OnPropertyChanged($"Map[{field}]");
+
+            // This is the crucial call that makes the whole system work.
+            ParentClass?.ParentDocument?.ParentRef?.SetDirty();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -48,10 +67,6 @@ namespace NX_TOOL_MANAGER.Models
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
-
     }
-
-
-
 }
 

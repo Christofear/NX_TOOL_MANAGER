@@ -139,6 +139,8 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <!-- FIX: Added a new row for the trackpoints file -->
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
@@ -161,7 +163,11 @@
                 <TextBox x:Name="ShanksTextBox" Grid.Row="3" Grid.Column="1" Text="{Binding ShanksPath, UpdateSourceTrigger=PropertyChanged}" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" Drop="TextBox_Drop"/>
                 <Button Grid.Row="3" Grid.Column="2" Content="✕" Style="{StaticResource ClearButtonStyle}" ToolTip="Clear Shanks" Click="ClearShanks_Click" Margin="8,0,0,0" Visibility="{Binding Text, ElementName=ShanksTextBox, Converter={StaticResource StringToVisibilityConverter}}"/>
 
-                <StackPanel Grid.Row="4" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+                <Button Grid.Row="4" Grid.Column="0" Content="Trackpoint_Database.dat" Style="{StaticResource BrowseButtonStyle}" Click="PickTrackpoints_Click" Margin="0,0,12,8"/>
+                <TextBox x:Name="TrackpointsTextBox" Grid.Row="4" Grid.Column="1" Text="{Binding TrackpointsPath, UpdateSourceTrigger=PropertyChanged}" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" Drop="TextBox_Drop"/>
+                <Button Grid.Row="4" Grid.Column="2" Content="✕" Style="{StaticResource ClearButtonStyle}" ToolTip="Clear Trackpoints" Click="ClearTrackpoints_Click" Margin="8,0,0,0" Visibility="{Binding Text, ElementName=TrackpointsTextBox, Converter={StaticResource StringToVisibilityConverter}}"/>
+
+                <StackPanel Grid.Row="5" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
                     <Button Content="Cancel" IsCancel="True" Style="{StaticResource ActionButtonStyle}" Margin="0,0,8,0"/>
                     <Button Content="Load" IsDefault="True" Style="{StaticResource ActionButtonStyle}" Click="Load_Click"/>
                 </StackPanel>
@@ -169,4 +175,3 @@
         </DockPanel>
     </Border>
 </Window>
-    
