@@ -4,7 +4,5 @@
              xmlns:services="clr-namespace:NX_TOOL_MANAGER.Services"
              StartupUri="Views/MainWindow.xaml">
     <Application.Resources>
-        <!-- Expose the singleton to XAML -->
-        <services:LibraryManager x:Key="LibraryManager" />
     </Application.Resources>
 </Application>

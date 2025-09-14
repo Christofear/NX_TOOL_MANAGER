@@ -1,14 +1,11 @@
 ﻿using NX_TOOL_MANAGER.Models;
 using NX_TOOL_MANAGER.Services;
-using System;
 using System.ComponentModel;
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using System.ComponentModel;
 
 namespace NX_TOOL_MANAGER.Views
 {
@@ -21,6 +18,9 @@ namespace NX_TOOL_MANAGER.Views
         {
             InitializeComponent();
 
+            // THE MAJOR CHANGE: The control now reacts to its DataContext being changed.
+            this.DataContextChanged += OnDataContextChanged;
+
             this.MouseWheel += OnMouseWheel;
             this.MouseLeftButtonDown += OnMouseLeftButtonDown;
             this.MouseLeftButtonUp += OnMouseLeftButtonUp;
@@ -31,15 +31,6 @@ namespace NX_TOOL_MANAGER.Views
             SizeChanged += (_, __) => Redraw();
         }
 
-        public DatRow ToolData
-        {
-            get => (DatRow)GetValue(ToolDataProperty);
-            set => SetValue(ToolDataProperty, value);
-        }
-        public static readonly DependencyProperty ToolDataProperty =
-            DependencyProperty.Register(nameof(ToolData), typeof(DatRow), typeof(ToolVisual), new PropertyMetadata(null, OnToolDataChanged));
-
-
         private void Redraw()
         {
             if (BackgroundCanvas == null || DrawingCanvas == null || Placeholder == null) return;
@@ -49,23 +40,24 @@ namespace NX_TOOL_MANAGER.Views
 
             DrawGrid();
 
-            if (ToolData == null)
+            // It now gets its data directly from the DataContext property.
+            var toolData = DataContext as DatRow;
+
+            if (toolData == null)
             {
                 ShowPlaceholder("No selection");
-                ToolTypeLabel.Text = string.Empty; // Clear the label
+                ToolTypeLabel.Text = string.Empty;
                 return;
             }
 
             HidePlaceholder();
             DrawCsys();
-
             ApplyTransform();
 
-            string ugt = ToolData.Get("UGT") ?? "0";
-            string ugst = ToolData.Get("UGST") ?? "0";
+            string ugt = toolData.Get("UGT") ?? "0";
+            string ugst = toolData.Get("UGST") ?? "0";
             var definition = ToolTypeRegistry.Find(ugt, ugst);
 
-            // UPDATED: Set the text for the tool type label
             if (definition != null)
             {
                 ToolTypeLabel.Text = $"{definition.UgTypeName} - {definition.UgSubtypeName}";
@@ -78,10 +70,11 @@ namespace NX_TOOL_MANAGER.Views
             bool wasDrawn = false;
             if (definition?.Drawer != null)
             {
-                wasDrawn = definition.Drawer.Draw(DrawingCanvas, ToolData);
+                wasDrawn = definition.Drawer.Draw(DrawingCanvas, toolData);
             }
 
-            if (!wasDrawn) wasDrawn = ToolDrawerHelpers.DrawCylindricalTool(DrawingCanvas, ToolData, "DIAMETER", "LENGTH");
+            if (!wasDrawn) wasDrawn = ToolDrawerHelpers.DrawCylindricalTool(DrawingCanvas, toolData, "DIAMETER", "LENGTH");
+
             if (!wasDrawn)
             {
                 ShowPlaceholder("Preview not available");
@@ -89,7 +82,7 @@ namespace NX_TOOL_MANAGER.Views
             }
         }
 
-        // --- PAN AND ZOOM LOGIC ---
+        // --- PAN AND ZOOM LOGIC (Unchanged) ---
         private void OnMouseWheel(object sender, MouseWheelEventArgs e)
         {
             Point mousePos = e.GetPosition(this);
@@ -146,7 +139,7 @@ namespace NX_TOOL_MANAGER.Views
             _transformMatrix = Matrix.Identity;
         }
 
-        // --- HELPER FUNCTIONS ---
+        // --- HELPER FUNCTIONS (Unchanged) ---
         private void DrawGrid()
         {
             var gridBrush = new SolidColorBrush(Color.FromRgb(0xCF, 0xD8, 0xDC));
@@ -154,25 +147,19 @@ namespace NX_TOOL_MANAGER.Views
             for (double y = 0; y < this.ActualHeight; y += 10) { BackgroundCanvas.Children.Add(new Line { X1 = 0, Y1 = y, X2 = this.ActualWidth, Y2 = y, Stroke = gridBrush, StrokeThickness = 0.5 }); }
         }
 
-        // UPDATED: Changed Y-coordinates to draw the CSYS in the correct orientation
-        // Replace the existing DrawCsys method in Views/ToolVisual.xaml.cs with this one.
-
         private void DrawCsys()
         {
             double csysSize = 25;
             double originX = 25;
-            // UPDATED: Origin is now correctly positioned at the bottom-left of the canvas
             double originY = this.ActualHeight - 25;
             var labelBrush = new SolidColorBrush(Color.FromRgb(0x49, 0x50, 0x57));
 
-            // Z-Axis (Blue, pointing UP)
             var zAxis = new Line { X1 = originX, Y1 = originY, X2 = originX, Y2 = originY - csysSize, Stroke = Brushes.Blue, StrokeThickness = 2 };
             var zArrow = new Polygon { Points = { new(originX, originY - csysSize - 5), new(originX - 3, originY - csysSize), new(originX + 3, originY - csysSize) }, Fill = Brushes.Blue };
             var zLabel = new TextBlock { Text = "Z", Foreground = labelBrush, FontWeight = FontWeights.Bold, FontSize = 12 };
             Canvas.SetLeft(zLabel, originX - 12);
             Canvas.SetTop(zLabel, originY - csysSize - 18);
 
-            // X-Axis (Red, pointing RIGHT)
             var xAxis = new Line { X1 = originX, Y1 = originY, X2 = originX + csysSize, Y2 = originY, Stroke = Brushes.Red, StrokeThickness = 2 };
             var xArrow = new Polygon { Points = { new(originX + csysSize + 5, originY), new(originX + csysSize, originY - 3), new(originX + csysSize, originY + 3) }, Fill = Brushes.Red };
             var xLabel = new TextBlock { Text = "X", Foreground = labelBrush, FontWeight = FontWeights.Bold, FontSize = 12 };
@@ -198,25 +185,30 @@ namespace NX_TOOL_MANAGER.Views
             Placeholder.Visibility = Visibility.Collapsed;
         }
 
-        private static void OnToolDataChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        /// <summary>
+        /// Handles switching the PropertyChanged listener when the DataContext (the selected DatRow) changes.
+        /// </summary>
+        private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            var control = (ToolVisual)d;
-
-            // detach from old row
+            // Detach from the old row's property change notifications
             if (e.OldValue is DatRow oldRow)
-                oldRow.PropertyChanged -= control.ToolData_PropertyChanged;
+                oldRow.PropertyChanged -= OnCurrentRowPropertyChanged;
 
-            // attach to new row
+            // Attach to the new row's property change notifications
             if (e.NewValue is DatRow newRow)
-                newRow.PropertyChanged += control.ToolData_PropertyChanged;
+                newRow.PropertyChanged += OnCurrentRowPropertyChanged;
 
-            control.Redraw();
+            // Redraw with the new tool data
+            Redraw();
         }
 
-        private void ToolData_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        /// <summary>
+        /// This method is called whenever a property on the *currently selected* DatRow changes.
+        /// </summary>
+        private void OnCurrentRowPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            Redraw(); // every time a field changes
+            // Redraw to reflect the change in the tool's parameters.
+            Redraw();
         }
     }
 }
-

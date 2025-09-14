@@ -22,7 +22,12 @@ namespace NX_TOOL_MANAGER.Models
         public DatDocument ParentDocument { get; set; }
 
         public string Name { get; set; } = string.Empty;
-        public string DisplayName => string.IsNullOrWhiteSpace(Name) ? "(Unnamed Class)" : Name;
+
+        // This is the new property that will hold the friendly name from the .def file.
+        public string UIName { get; set; }
+
+        // The DisplayName now prioritizes the UIName for a cleaner presentation.
+        public string DisplayName => !string.IsNullOrWhiteSpace(UIName) ? UIName : Name;
         public string DisplayHeader => $"{DisplayName} ({Rows.Count})";
 
         public List<string> PreClassLines { get; } = new();
@@ -58,7 +63,6 @@ namespace NX_TOOL_MANAGER.Models
             Map[field] = value;
             OnPropertyChanged($"Map[{field}]");
 
-            // This is the crucial call that makes the whole system work.
             ParentClass?.ParentDocument?.ParentRef?.SetDirty();
         }
 
@@ -69,4 +73,3 @@ namespace NX_TOOL_MANAGER.Models
         }
     }
 }
-

@@ -19,6 +19,7 @@ namespace NX_TOOL_MANAGER.Services
     {
         public static LibraryManager Instance { get; } = new LibraryManager();
         public ObservableCollection<DatDocumentRef> Libraries { get; } = new();
+        public ObservableCollection<DatDocumentRef> FilteredMainLibraries { get; } = new();
 
         private DatDocumentRef _selectedDocument;
         public DatDocumentRef SelectedDocument
@@ -38,6 +39,8 @@ namespace NX_TOOL_MANAGER.Services
 
         private LibraryManager()
         {
+            Libraries.CollectionChanged += OnLibrariesChanged;
+
             UnloadLibraryCommand = new RelayCommand<DatDocumentRef>(doc => { if (doc != null) Unload(doc.Kind); });
 
             SaveLibraryCommand = new RelayCommand<DatDocumentRef>(doc =>
@@ -77,6 +80,22 @@ namespace NX_TOOL_MANAGER.Services
             });
         }
 
+        private void OnLibrariesChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            // Clear the filtered list
+            FilteredMainLibraries.Clear();
+
+            // Re-populate it with only the items we want to show
+            var filteredItems = Libraries.Where(doc =>
+                doc.Kind == FileKind.Tools ||
+                doc.Kind == FileKind.Holders ||
+                doc.Kind == FileKind.Shanks);
+
+            foreach (var item in filteredItems)
+            {
+                FilteredMainLibraries.Add(item);
+            }
+        }
         public ICommand UnloadLibraryCommand { get; }
         public ICommand SaveLibraryCommand { get; }
         public ICommand SaveAsLibraryCommand { get; }
@@ -115,38 +134,29 @@ namespace NX_TOOL_MANAGER.Services
 
             added.Document.ParentRef = added;
 
-            // --- THIS IS THE NEW, SMARTER LOGIC ---
             if (kind == FileKind.Tools)
             {
-                // For tools, group the classes into categories.
+                CategoryService.LoadMappingFromDefFile();
+                foreach (var toolClass in doc.Classes)
+                {
+                    toolClass.UIName = CategoryService.GetUINameForClass(toolClass.Name);
+                }
                 added.Children = CategoryService.GroupClassesIntoCategories(doc.Classes);
             }
             else if (kind == FileKind.Holders || kind == FileKind.Shanks)
             {
-                // For holders and shanks, we ONLY show the INDEX class in the tree.
                 string indexClassName = (kind == FileKind.Holders) ? "HOLDER_INDEX" : "SHANK_INDEX";
                 var indexClass = doc.Classes.FirstOrDefault(c => c.Name.Equals(indexClassName, StringComparison.OrdinalIgnoreCase));
-
-                // The tree will now only have one node under the holder/shank file.
                 added.Children = (indexClass != null) ? new List<DatClass> { indexClass } : new List<DatClass>();
             }
             else
             {
-                // For other types (like Trackpoints), show the flat list of classes.
                 added.Children = doc.Classes;
             }
 
             Libraries.Add(added);
             SelectedDocument = added;
-
-            if (added.Children is List<CategoryNode> categories)
-            {
-                SelectedClass = categories.FirstOrDefault()?.Classes.FirstOrDefault();
-            }
-            else if (added.Children is IEnumerable<DatClass> classes)
-            {
-                SelectedClass = classes.FirstOrDefault();
-            }
+            SelectedClass = GetFirstClass(added.Children);
         }
 
         public bool Unload(FileKind kind)
@@ -181,8 +191,7 @@ namespace NX_TOOL_MANAGER.Services
             {
                 var nextDoc = Libraries.FirstOrDefault();
                 SelectedDocument = nextDoc;
-                if (nextDoc?.Children is List<CategoryNode> categories) { SelectedClass = categories.FirstOrDefault()?.Classes.FirstOrDefault(); }
-                else if (nextDoc?.Children is IEnumerable<DatClass> classes) { SelectedClass = classes.FirstOrDefault(); }
+                SelectedClass = GetFirstClass(nextDoc?.Children);
             }
             else if (SelectedClass != null && ReferenceEquals(existing, FindDocForClass(SelectedClass)))
             {
@@ -203,7 +212,8 @@ namespace NX_TOOL_MANAGER.Services
             }
         }
 
-        public void ApplySelection(string toolsPath, string holdersPath, string shanksPath, string trackpointsPath)
+        // FIX: Added the segmentedToolsPath parameter to this method.
+        public void ApplySelection(string toolsPath, string holdersPath, string shanksPath, string trackpointsPath, string segmentedToolsPath)
         {
             var currentTools = Libraries.FirstOrDefault(x => x.Kind == FileKind.Tools)?.FullPath;
             if (string.IsNullOrEmpty(toolsPath) && !string.IsNullOrEmpty(currentTools)) Unload(FileKind.Tools);
@@ -221,13 +231,35 @@ namespace NX_TOOL_MANAGER.Services
             if (string.IsNullOrEmpty(trackpointsPath) && !string.IsNullOrEmpty(currentTrackpoints)) Unload(FileKind.Trackpoints);
             else if (!string.IsNullOrEmpty(trackpointsPath)) Load(trackpointsPath);
 
+            // FIX: Added the logic to load/unload the segmented tools file.
+            var currentSegmentedTools = Libraries.FirstOrDefault(x => x.Kind == FileKind.SegmentedTools)?.FullPath;
+            if (string.IsNullOrEmpty(segmentedToolsPath) && !string.IsNullOrEmpty(currentSegmentedTools)) Unload(FileKind.SegmentedTools);
+            else if (!string.IsNullOrEmpty(segmentedToolsPath)) Load(segmentedToolsPath);
+
             if (SelectedDocument == null && Libraries.Any())
             {
                 var firstDoc = Libraries.First();
                 SelectedDocument = firstDoc;
-                if (firstDoc.Children is List<CategoryNode> categories) { SelectedClass = categories.FirstOrDefault()?.Classes.FirstOrDefault(); }
-                else if (firstDoc.Children is IEnumerable<DatClass> classes) { SelectedClass = classes.FirstOrDefault(); }
+                SelectedClass = GetFirstClass(firstDoc.Children);
             }
+        }
+
+        private DatClass GetFirstClass(IEnumerable children)
+        {
+            if (children == null) return null;
+            foreach (var item in children)
+            {
+                if (item is CategoryNode node)
+                {
+                    var found = GetFirstClass(node.Classes);
+                    if (found != null) return found;
+                }
+                else if (item is DatClass dc)
+                {
+                    return dc;
+                }
+            }
+            return null;
         }
 
         private DatDocumentRef FindDocForClass(DatClass cls)

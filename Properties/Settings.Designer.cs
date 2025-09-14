@@ -70,5 +70,77 @@ namespace NX_TOOL_MANAGER.Properties {
                 this["TrackpointsDefPath"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string SegmentedDefPath {
+            get {
+                return ((string)(this["SegmentedDefPath"]));
+            }
+            set {
+                this["SegmentedDefPath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string ToolsPath {
+            get {
+                return ((string)(this["ToolsPath"]));
+            }
+            set {
+                this["ToolsPath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string HoldersPath {
+            get {
+                return ((string)(this["HoldersPath"]));
+            }
+            set {
+                this["HoldersPath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string ShanksPath {
+            get {
+                return ((string)(this["ShanksPath"]));
+            }
+            set {
+                this["ShanksPath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string TrackpointsPath {
+            get {
+                return ((string)(this["TrackpointsPath"]));
+            }
+            set {
+                this["TrackpointsPath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string SegmentedToolsPath {
+            get {
+                return ((string)(this["SegmentedToolsPath"]));
+            }
+            set {
+                this["SegmentedToolsPath"] = value;
+            }
+        }
     }
 }

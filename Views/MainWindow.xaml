@@ -20,7 +20,6 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
-        <!-- (All existing resources are unchanged) -->
         <conv:PageIsSelectedConverter x:Key="PageIsSelectedConverter"/>
         <local:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <Style x:Key="ToolBarSeparatorStyle" TargetType="Separator">
@@ -44,7 +43,16 @@
                     <ControlTemplate TargetType="{x:Type MenuItem}">
                         <Grid>
                             <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="true">
-                                <ContentPresenter ContentSource="Header" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition x:Name="IconColumn" Width="Auto" MinWidth="20"/>
+                                        <ColumnDefinition x:Name="HeaderColumn" Width="*"/>
+                                        <ColumnDefinition x:Name="GestureColumn" Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="CheckMark" Grid.Column="0" Text="✓" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Hidden" FontWeight="Bold"/>
+                                    <ContentPresenter x:Name="HeaderHost" Grid.Column="1" ContentSource="Header" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                                    <TextBlock Grid.Column="2" Text="{TemplateBinding InputGestureText}" Margin="15,0,5,0" Foreground="#999999" VerticalAlignment="Center"/>
+                                </Grid>
                             </Border>
                             <Popup x:Name="PART_Popup" AllowsTransparency="true" Focusable="false" IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" PopupAnimation="Fade">
                                 <Border x:Name="SubmenuBorder" Background="#2D2D2D" BorderBrush="#4A4A4A" BorderThickness="1">
@@ -53,10 +61,18 @@
                             </Popup>
                         </Grid>
                         <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                            </Trigger>
                             <Trigger Property="Role" Value="TopLevelHeader">
-                                <Setter Property="Padding" Value="7,5"/>
+                                <Setter Property="Padding" Value="8,5"/>
                                 <Setter Property="Background" TargetName="Bd" Value="Transparent"/>
                                 <Setter Property="Placement" TargetName="PART_Popup" Value="Bottom"/>
+                                <Setter TargetName="IconColumn" Property="MinWidth" Value="0"/>
+                                <Setter TargetName="IconColumn" Property="Width" Value="0"/>
+                                <Setter TargetName="HeaderHost" Property="HorizontalAlignment" Value="Center"/>
+                                <Setter TargetName="HeaderColumn" Property="Width" Value="Auto"/>
+                                <Setter TargetName="GestureColumn" Property="Width" Value="0"/>
                             </Trigger>
                             <Trigger Property="Role" Value="SubmenuItem">
                                 <Setter Property="Padding" Value="8,6"/>
@@ -114,7 +130,6 @@
         </Style>
     </Window.Resources>
 
-    <!-- THE FIX: The root border now has a name so the code-behind can access it -->
     <Border x:Name="RootBorder" BorderBrush="#4A4A4A" BorderThickness="1">
         <DockPanel>
             <Grid DockPanel.Dock="Top" Height="32" Background="#2D2D2D" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
@@ -131,11 +146,18 @@
                     <MenuItem Header="_File">
                         <MenuItem Header="_New" Click="New_Click"/>
                         <Separator/>
-                        <MenuItem Header="{Binding SaveMenuItemHeader}" IsEnabled="{Binding IsSaveEnabled}" Click="SaveLibrary_Click"/>
-                        <MenuItem Header="Save _As..." IsEnabled="{Binding IsSaveAsEnabled}" Click="SaveAs_Click"/>
-                        <MenuItem Header="Save A_ll" IsEnabled="{Binding IsSaveAllEnabled}" Click="SaveAll_Click"/>
+                        <MenuItem Header="{Binding SaveMenuItemHeader}" Command="views:MainWindow.SaveFileCommand" InputGestureText="Ctrl+S"/>
+                        <MenuItem Header="Save _As..." Command="views:MainWindow.SaveAsCommand" InputGestureText="Ctrl+Shift+S"/>
+                        <MenuItem Header="Save A_ll" Command="views:MainWindow.SaveAllCommand"/>
                         <Separator/>
-                        <MenuItem Header="E_xit" Click="Exit_Click"/>
+                        <MenuItem Header="{Binding CloseMenuItemHeader}" Command="views:MainWindow.CloseFileCommand" InputGestureText="Ctrl+W"/>
+                        <MenuItem Header="Close All" Command="views:MainWindow.CloseAllFilesCommand" InputGestureText="Ctrl+Shift+W"/>
+                        <Separator/>
+                        <MenuItem Header="E_xit" Command="ApplicationCommands.Close" InputGestureText="Alt+F4"/>
+                    </MenuItem>
+                    <MenuItem Header="_View">
+                        <MenuItem Header="Library Tree" IsCheckable="True" IsChecked="{Binding TheViewerView.IsClassTreeExpanded, Mode=TwoWay}" Command="views:MainWindow.ToggleLibraryTreeCommand" InputGestureText="Ctrl+1"/>
+                        <MenuItem Header="Tool Preview" IsCheckable="True" IsChecked="{Binding TheViewerView.IsPreviewExpanded, Mode=TwoWay}" Command="views:MainWindow.ToggleToolPreviewCommand" InputGestureText="Ctrl+2"/>
                     </MenuItem>
                     <MenuItem Header="_Preferences">
                         <MenuItem Header="Application Settings..." Click="ApplicationSettings_Click"/>
@@ -240,6 +262,7 @@
             </Grid>
 
             <ContentControl x:Name="PageHost"/>
+
         </DockPanel>
     </Border>
 </Window>

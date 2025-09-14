@@ -2,8 +2,9 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:NX_TOOL_MANAGER"
+        xmlns:converters="clr-namespace:NX_TOOL_MANAGER.Converters"
         
-        Height="Auto" Width="500"
+        Height="Auto" Width="650"
         FontFamily="Segoe UI"
         Background="#1E1E1E"
         Foreground="White"
@@ -14,8 +15,8 @@
         SizeToContent="Height">
 
     <Window.Resources>
-        <local:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
-
+        <!-- (All existing styles are unchanged) -->
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
         <Style x:Key="CloseButtonStyle" TargetType="Button">
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -39,14 +40,13 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-
         <Style x:Key="BrowseButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#333333"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderBrush" Value="#4A4A4A"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="Width" Value="150"/>
+            <Setter Property="Width" Value="230"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -65,7 +65,6 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
         <Style x:Key="ActionButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#333333"/>
             <Setter Property="Foreground" Value="White"/>
@@ -91,13 +90,13 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
         <Style x:Key="ClearButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#CCCCCC"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Margin" Value="4,0"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -111,7 +110,6 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="#2A2A2A"/>
             <Setter Property="Foreground" Value="#CCCCCC"/>
@@ -119,6 +117,7 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="5"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <EventSetter Event="PreviewMouseDown" Handler="TextBox_PreviewMouseDown"/>
         </Style>
     </Window.Resources>
 
@@ -133,45 +132,82 @@
                 <Button Grid.Column="1" Style="{StaticResource CloseButtonStyle}" Content="&#xE8BB;" Click="CloseButton_Click"/>
             </Grid>
 
-            <Grid Margin="20">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <!-- FIX: Added a new row for the trackpoints file -->
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="20">
+                <Button Content="Cancel" IsCancel="True" Style="{StaticResource ActionButtonStyle}" Margin="0,0,8,0"/>
+                <Button Content="Load" IsDefault="True" Style="{StaticResource ActionButtonStyle}" Click="Load_Click"/>
+            </StackPanel>
 
-                <TextBlock Grid.Row="0" Grid.ColumnSpan="3" Text="Choose NX .dat files" FontWeight="SemiBold" Margin="0,0,0,16"/>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <Grid Margin="20,20,20,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*" MinWidth="200"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                <Button Grid.Row="1" Grid.Column="0" Content="Tool_Database.dat" Style="{StaticResource BrowseButtonStyle}" Click="PickTools_Click" Margin="0,0,12,8"/>
-                <TextBox x:Name="ToolsTextBox" Grid.Row="1" Grid.Column="1" Text="{Binding ToolsPath, UpdateSourceTrigger=PropertyChanged}" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" Drop="TextBox_Drop"/>
-                <Button Grid.Row="1" Grid.Column="2" Content="✕" Style="{StaticResource ClearButtonStyle}" ToolTip="Clear Tools" Click="ClearTools_Click" Margin="8,0,0,0" Visibility="{Binding Text, ElementName=ToolsTextBox, Converter={StaticResource StringToVisibilityConverter}}"/>
+                    <TextBlock Grid.Row="0" Grid.ColumnSpan="3" Text="Choose NX .dat files" FontWeight="SemiBold" Margin="0,0,0,16"/>
 
-                <Button Grid.Row="2" Grid.Column="0" Content="Holder_Database.dat" Style="{StaticResource BrowseButtonStyle}" Click="PickHolders_Click" Margin="0,0,12,8"/>
-                <TextBox x:Name="HoldersTextBox" Grid.Row="2" Grid.Column="1" Text="{Binding HoldersPath, UpdateSourceTrigger=PropertyChanged}" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" Drop="TextBox_Drop"/>
-                <Button Grid.Row="2" Grid.Column="2" Content="✕" Style="{StaticResource ClearButtonStyle}" ToolTip="Clear Holders" Click="ClearHolders_Click" Margin="8,0,0,0" Visibility="{Binding Text, ElementName=HoldersTextBox, Converter={StaticResource StringToVisibilityConverter}}"/>
+                    <Button Grid.Row="1" Grid.Column="0" Content="Tool_Database.dat" Style="{StaticResource BrowseButtonStyle}" Click="PickTools_Click" Margin="0,0,12,8"/>
+                    <Grid Grid.Row="1" Grid.Column="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="ToolsTextBox" Grid.Column="0" Text="{Binding ToolsPath, UpdateSourceTrigger=PropertyChanged}" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" Drop="TextBox_Drop"/>
+                        <Button Grid.Column="1" Content="✕" Style="{StaticResource ClearButtonStyle}" ToolTip="Clear Tools" Click="ClearTools_Click" Visibility="{Binding Text, ElementName=ToolsTextBox, Converter={StaticResource StringToVisibilityConverter}}"/>
+                    </Grid>
 
-                <Button Grid.Row="3" Grid.Column="0" Content="Shank_Database.dat" Style="{StaticResource BrowseButtonStyle}" Click="PickShanks_Click" Margin="0,0,12,8"/>
-                <TextBox x:Name="ShanksTextBox" Grid.Row="3" Grid.Column="1" Text="{Binding ShanksPath, UpdateSourceTrigger=PropertyChanged}" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" Drop="TextBox_Drop"/>
-                <Button Grid.Row="3" Grid.Column="2" Content="✕" Style="{StaticResource ClearButtonStyle}" ToolTip="Clear Shanks" Click="ClearShanks_Click" Margin="8,0,0,0" Visibility="{Binding Text, ElementName=ShanksTextBox, Converter={StaticResource StringToVisibilityConverter}}"/>
+                    <Button Grid.Row="2" Grid.Column="0" Content="Holder_Database.dat" Style="{StaticResource BrowseButtonStyle}" Click="PickHolders_Click" Margin="0,0,12,8"/>
+                    <Grid Grid.Row="2" Grid.Column="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="HoldersTextBox" Grid.Column="0" Text="{Binding HoldersPath, UpdateSourceTrigger=PropertyChanged}" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" Drop="TextBox_Drop"/>
+                        <Button Grid.Column="1" Content="✕" Style="{StaticResource ClearButtonStyle}" ToolTip="Clear Holders" Click="ClearHolders_Click" Visibility="{Binding Text, ElementName=HoldersTextBox, Converter={StaticResource StringToVisibilityConverter}}"/>
+                    </Grid>
 
-                <Button Grid.Row="4" Grid.Column="0" Content="Trackpoint_Database.dat" Style="{StaticResource BrowseButtonStyle}" Click="PickTrackpoints_Click" Margin="0,0,12,8"/>
-                <TextBox x:Name="TrackpointsTextBox" Grid.Row="4" Grid.Column="1" Text="{Binding TrackpointsPath, UpdateSourceTrigger=PropertyChanged}" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" Drop="TextBox_Drop"/>
-                <Button Grid.Row="4" Grid.Column="2" Content="✕" Style="{StaticResource ClearButtonStyle}" ToolTip="Clear Trackpoints" Click="ClearTrackpoints_Click" Margin="8,0,0,0" Visibility="{Binding Text, ElementName=TrackpointsTextBox, Converter={StaticResource StringToVisibilityConverter}}"/>
+                    <Button Grid.Row="3" Grid.Column="0" Content="Shank_Database.dat" Style="{StaticResource BrowseButtonStyle}" Click="PickShanks_Click" Margin="0,0,12,8"/>
+                    <Grid Grid.Row="3" Grid.Column="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="ShanksTextBox" Grid.Column="0" Text="{Binding ShanksPath, UpdateSourceTrigger=PropertyChanged}" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" Drop="TextBox_Drop"/>
+                        <Button Grid.Column="1" Content="✕" Style="{StaticResource ClearButtonStyle}" ToolTip="Clear Shanks" Click="ClearShanks_Click" Visibility="{Binding Text, ElementName=ShanksTextBox, Converter={StaticResource StringToVisibilityConverter}}"/>
+                    </Grid>
 
-                <StackPanel Grid.Row="5" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
-                    <Button Content="Cancel" IsCancel="True" Style="{StaticResource ActionButtonStyle}" Margin="0,0,8,0"/>
-                    <Button Content="Load" IsDefault="True" Style="{StaticResource ActionButtonStyle}" Click="Load_Click"/>
-                </StackPanel>
-            </Grid>
+                    <!-- FIX: Added back the Trackpoint database row -->
+                    <Button Grid.Row="4" Grid.Column="0" Content="Trackpoint_Database.dat" Style="{StaticResource BrowseButtonStyle}" Click="PickTrackpoints_Click" Margin="0,0,12,8"/>
+                    <Grid Grid.Row="4" Grid.Column="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="TrackpointsTextBox" Grid.Column="0" Text="{Binding TrackpointsPath, UpdateSourceTrigger=PropertyChanged}" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" Drop="TextBox_Drop"/>
+                        <Button Grid.Column="1" Content="✕" Style="{StaticResource ClearButtonStyle}" ToolTip="Clear Trackpoints" Click="ClearTrackpoints_Click" Visibility="{Binding Text, ElementName=TrackpointsTextBox, Converter={StaticResource StringToVisibilityConverter}}"/>
+                    </Grid>
+
+                    <Button Grid.Row="5" Grid.Column="0" Content="Segmented_Tool_Database.dat" Style="{StaticResource BrowseButtonStyle}" Click="PickSegmentedTools_Click" Margin="0,0,12,8"/>
+                    <Grid Grid.Row="5" Grid.Column="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="SegmentedToolsTextBox" Grid.Column="0" Text="{Binding SegmentedToolsPath, UpdateSourceTrigger=PropertyChanged}" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" Drop="TextBox_Drop"/>
+                        <Button Grid.Column="1" Content="✕" Style="{StaticResource ClearButtonStyle}" ToolTip="Clear Segmented Tools" Click="ClearSegmentedTools_Click" Visibility="{Binding Text, ElementName=SegmentedToolsTextBox, Converter={StaticResource StringToVisibilityConverter}}"/>
+                    </Grid>
+                </Grid>
+            </ScrollViewer>
         </DockPanel>
     </Border>
 </Window>
+

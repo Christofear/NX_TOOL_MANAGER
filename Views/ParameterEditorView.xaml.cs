@@ -58,18 +58,28 @@ namespace NX_TOOL_MANAGER.Views
         protected void OnPropertyChanged([CallerMemberName] string name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
-    public partial class ParameterEditorView : UserControl
+    public partial class ParameterEditorView : UserControl, INotifyPropertyChanged
     {
         public ParameterEditorView()
         {
             InitializeComponent();
-            // Set the DataContext so the ItemsControl can find ParameterCategories
             this.DataContext = this;
+            // Create an instance of our SegmentEditor to be hosted in the new tab.
+            SegmentEditorControl = new SegmentEditor();
+        }
+
+        // --- NEW PROPERTIES to manage the dynamic tab ---
+        public SegmentEditor SegmentEditorControl { get; }
+
+        private Visibility _segmentProfileTabVisibility = Visibility.Collapsed;
+        public Visibility SegmentProfileTabVisibility
+        {
+            get => _segmentProfileTabVisibility;
+            set { _segmentProfileTabVisibility = value; OnPropertyChanged(); }
         }
 
         public ObservableCollection<ParameterCategoryViewModel> ParameterCategories { get; } = new ObservableCollection<ParameterCategoryViewModel>();
 
-        // This is the new DependencyProperty that will receive the DatRow from the host (PreviewPane)
         public DatRow DataContextRow
         {
             get => (DatRow)GetValue(DataContextRowProperty);
@@ -78,7 +88,6 @@ namespace NX_TOOL_MANAGER.Views
         public static readonly DependencyProperty DataContextRowProperty =
             DependencyProperty.Register(nameof(DataContextRow), typeof(DatRow), typeof(ParameterEditorView), new PropertyMetadata(null, OnDataContextRowChanged));
 
-        // This method is called whenever the DataContextRow changes.
         private static void OnDataContextRowChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var editorView = (ParameterEditorView)d;
@@ -91,6 +100,61 @@ namespace NX_TOOL_MANAGER.Views
                 newRow.PropertyChanged += editorView.SelectedRow_PropertyChanged;
             }
             editorView.RebuildParameters();
+            // This new method now controls the logic for the dynamic tab.
+            editorView.UpdateSegmentProfileTab();
+        }
+
+        // --- NEW METHOD to handle the visibility and data for the new tab ---
+        private void UpdateSegmentProfileTab()
+        {
+            var selectedRow = DataContextRow;
+            if (selectedRow == null)
+            {
+                SegmentProfileTabVisibility = Visibility.Collapsed;
+                return;
+            }
+
+            var parentClass = selectedRow.ParentClass;
+            bool isSpecialTool = CategoryService.IsSpecialToolType(parentClass?.Name);
+
+            if (isSpecialTool)
+            {
+                SegmentProfileTabVisibility = Visibility.Visible;
+
+                string libRef = selectedRow.Get("LIBRF");
+                var segmentedToolsDoc = LibraryManager.Instance.Libraries.FirstOrDefault(doc => doc.Kind == FileKind.SegmentedTools);
+
+                if (segmentedToolsDoc?.Document == null || string.IsNullOrEmpty(libRef))
+                {
+                    SegmentEditorControl.DataContext = null;
+                    return;
+                }
+
+                var shapeRows = segmentedToolsDoc.Document.Classes
+                    .SelectMany(c => c.Rows)
+                    .Where(r => r.Get("LIBRF") == libRef)
+                    .ToList();
+
+                if (shapeRows.Any())
+                {
+                    var tempClass = new DatClass { Name = "Segment Profile", ParentDocument = segmentedToolsDoc.Document };
+                    tempClass.FormatFields.AddRange(shapeRows.First().ParentClass.FormatFields);
+                    foreach (var row in shapeRows) { tempClass.Rows.Add(row); }
+
+                    // Pass the data and context to the SegmentEditor control instance
+                    SegmentEditorControl.DataContext = tempClass;
+                    SegmentEditorControl.MasterLibRef = libRef;
+                    SegmentEditorControl.MasterClassName = parentClass.Name;
+                }
+                else
+                {
+                    SegmentEditorControl.DataContext = null;
+                }
+            }
+            else
+            {
+                SegmentProfileTabVisibility = Visibility.Collapsed;
+            }
         }
 
         private void SelectedRow_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -230,6 +294,9 @@ namespace NX_TOOL_MANAGER.Views
             return null;
         }
         #endregion
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }
 

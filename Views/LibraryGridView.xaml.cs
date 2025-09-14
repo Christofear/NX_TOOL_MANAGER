@@ -5,7 +5,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -25,40 +24,37 @@ namespace NX_TOOL_MANAGER.Views
             DataGrid.LoadingRow += DataGrid_LoadingRow;
             DataGrid.CurrentCellChanged += DataGrid_CurrentCellChanged;
             DataGrid.PreparingCellForEdit += DataGrid_PreparingCellForEdit;
-            DataGrid.CellEditEnding += DataGrid_CellEditEnding; // THE FIX: Hook into this event
+            DataGrid.CellEditEnding += DataGrid_CellEditEnding;
         }
 
         private DatClass _current;
         private INotifyCollectionChanged _rowsINCC;
 
+        public string MasterLibRef { get; set; }
+        public string MasterClassName { get; set; }
+
         private void Rebind()
         {
             var cls = ResolveClassFromContext(DataContext);
+            if (ReferenceEquals(_current, cls)) return;
 
-            if (!ReferenceEquals(_current, cls))
+            if (_rowsINCC != null) _rowsINCC.CollectionChanged -= Rows_CollectionChanged;
+            if (_current?.Rows != null)
             {
-                if (_rowsINCC != null)
-                    _rowsINCC.CollectionChanged -= Rows_CollectionChanged;
-                if (_current?.Rows != null)
-                {
-                    foreach (var row in _current.Rows)
-                        row.PropertyChanged -= DatRow_PropertyChanged;
-                }
-
-                _current = cls;
-                _rowsINCC = _current?.Rows as INotifyCollectionChanged;
-
-                if (_rowsINCC != null)
-                    _rowsINCC.CollectionChanged += Rows_CollectionChanged;
-                if (_current?.Rows != null)
-                {
-                    foreach (var row in _current.Rows)
-                        row.PropertyChanged += DatRow_PropertyChanged;
-                }
-
-                BuildColumns(_current);
-                DataGrid.ItemsSource = _current?.Rows;
+                foreach (var row in _current.Rows) row.PropertyChanged -= DatRow_PropertyChanged;
             }
+
+            _current = cls;
+            _rowsINCC = _current?.Rows as INotifyCollectionChanged;
+
+            if (_rowsINCC != null) _rowsINCC.CollectionChanged += Rows_CollectionChanged;
+            if (_current?.Rows != null)
+            {
+                foreach (var row in _current.Rows) row.PropertyChanged += DatRow_PropertyChanged;
+            }
+
+            BuildColumns(_current);
+            DataGrid.ItemsSource = _current?.Rows;
             UpdateHeaderVisibility();
         }
 
@@ -67,7 +63,7 @@ namespace NX_TOOL_MANAGER.Views
                 nameof(SelectedRow),
                 typeof(DatRow),
                 typeof(LibraryGridView),
-                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnSelectedRowChanged));
 
         public DatRow SelectedRow
         {
@@ -75,41 +71,12 @@ namespace NX_TOOL_MANAGER.Views
             set => SetValue(SelectedRowProperty, value);
         }
 
-        private void Rows_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            if (e.OldItems != null)
-            {
-                foreach (DatRow item in e.OldItems)
-                    item.PropertyChanged -= DatRow_PropertyChanged;
-            }
-            if (e.NewItems != null)
-            {
-                foreach (DatRow item in e.NewItems)
-                    item.PropertyChanged += DatRow_PropertyChanged;
-            }
-            UpdateHeaderVisibility();
-        }
+        public event RoutedPropertyChangedEventHandler<DatRow> SelectedRowChanged;
 
-        private void UpdateHeaderVisibility()
+        private static void OnSelectedRowChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            bool hasData = _current != null;
-            DataGrid.HeadersVisibility = hasData ? DataGridHeadersVisibility.All : DataGridHeadersVisibility.None;
-        }
-
-        private void DatRow_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            // This is now primarily for the PreviewPane to update the grid.
-            DataGrid.Items.Refresh();
-        }
-
-        private static DatClass ResolveClassFromContext(object ctx)
-        {
-            if (ctx is DatClass c) return c;
-            var docProp = ctx?.GetType().GetProperty("Document", BindingFlags.Public | BindingFlags.Instance);
-            var doc = docProp?.GetValue(ctx);
-            var classesProp = doc?.GetType().GetProperty("Classes", BindingFlags.Public | BindingFlags.Instance);
-            var classes = classesProp?.GetValue(doc) as IEnumerable;
-            return classes?.Cast<DatClass>().FirstOrDefault();
+            var gridView = (LibraryGridView)d;
+            gridView.SelectedRowChanged?.Invoke(gridView, new RoutedPropertyChangedEventArgs<DatRow>((DatRow)e.OldValue, (DatRow)e.NewValue));
         }
 
         private void BuildColumns(DatClass cls)
@@ -117,37 +84,28 @@ namespace NX_TOOL_MANAGER.Views
             DataGrid.Columns.Clear();
             if (cls == null) return;
 
-            IEnumerable<string> keys = Enumerable.Empty<string>();
-            if (cls.FormatFields != null && cls.FormatFields.Count > 0)
-            {
-                keys = cls.FormatFields;
-            }
-            else if (cls.Rows.FirstOrDefault()?.Map != null)
-            {
-                keys = cls.Rows.FirstOrDefault().Map.Keys;
-            }
+            bool isShapeProfile = (cls.Name == "Shape Profile" || cls.Name == "Segment Profile");
+            var hiddenColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LIBRF", "T", "STYPE", "SEQ", "RTYPE" };
+
+            IEnumerable<string> keys = cls.FormatFields.Any()
+                ? cls.FormatFields
+                : cls.Rows.FirstOrDefault()?.Map.Keys ?? Enumerable.Empty<string>();
 
             foreach (var key in keys)
             {
-                var definition = FieldManager.GetDefinition(key);
-
-                if (definition != null && !definition.Visible)
+                if (isShapeProfile && hiddenColumns.Contains(key))
                 {
                     continue;
                 }
 
-                var binding = new Binding($"Map[{key}]")
-                {
-                    Mode = BindingMode.TwoWay,
-                    UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
-                    FallbackValue = "",
-                    TargetNullValue = ""
-                };
+                var definition = FieldManager.GetDefinition(key);
+                if (definition != null && !definition.Visible) continue;
 
-                // THE FIX: Create a new style instance for each column to avoid both the
-                // "sealed" error and the white header bug.
+                var binding = new Binding($"Map[{key}]") { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
                 var headerStyle = new Style(typeof(DataGridColumnHeader), DataGrid.ColumnHeaderStyle);
-                string headerText = key;
+
+                // --- THE FIX: Changed DisplayName to Description ---
+                string headerText = definition?.Description ?? key;
 
                 if (definition != null)
                 {
@@ -167,19 +125,24 @@ namespace NX_TOOL_MANAGER.Views
             }
         }
 
-        // --- EVENT HANDLERS ---
-
-        private void DataGrid_LoadingRow(object sender, DataGridRowEventArgs e)
+        #region Event Handlers
+        private void Rows_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            e.Row.Header = (e.Row.GetIndex() + 1).ToString();
+            if (e.OldItems != null) { foreach (DatRow item in e.OldItems) item.PropertyChanged -= DatRow_PropertyChanged; }
+            if (e.NewItems != null) { foreach (DatRow item in e.NewItems) item.PropertyChanged += DatRow_PropertyChanged; }
+            UpdateHeaderVisibility();
         }
 
+        private void UpdateHeaderVisibility()
+        {
+            DataGrid.HeadersVisibility = (_current != null && _current.Rows.Any()) ? DataGridHeadersVisibility.All : DataGridHeadersVisibility.None;
+        }
+
+        private void DatRow_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e) => DataGrid.Items.Refresh();
+        private void DataGrid_LoadingRow(object sender, DataGridRowEventArgs e) => e.Row.Header = (e.Row.GetIndex() + 1).ToString();
         private void DataGrid_CurrentCellChanged(object sender, EventArgs e)
         {
-            if (DataGrid.CurrentCell.Item is DatRow row)
-            {
-                SelectedRow = row;
-            }
+            if (DataGrid.CurrentCell.Item is DatRow row) { SelectedRow = row; }
         }
 
         private void DataGridRowHeader_Click(object sender, MouseButtonEventArgs e)
@@ -187,10 +150,7 @@ namespace NX_TOOL_MANAGER.Views
             if (sender is FrameworkElement header && header.DataContext is DatRow row)
             {
                 DataGrid.SelectedCells.Clear();
-                foreach (var column in DataGrid.Columns)
-                {
-                    DataGrid.SelectedCells.Add(new DataGridCellInfo(row, column));
-                }
+                foreach (var column in DataGrid.Columns) { DataGrid.SelectedCells.Add(new DataGridCellInfo(row, column)); }
             }
         }
 
@@ -203,39 +163,16 @@ namespace NX_TOOL_MANAGER.Views
             }
         }
 
-        private void DataGridCell_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (sender is DataGridCell cell && !cell.IsEditing)
-            {
-                var dataGrid = FindVisualParent<DataGrid>(cell);
-                if (dataGrid != null)
-                {
-                    dataGrid.Focus();
-                    if (!cell.IsFocused)
-                    {
-                        cell.Focus();
-                    }
-                    dataGrid.BeginEdit();
-                }
-            }
-        }
-
-        // THE FIX: This event handler ensures that edits made directly in the grid
-        // correctly mark the file as modified.
         private void DataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
-            if (e.EditAction == DataGridEditAction.Commit)
+            if (e.EditAction == DataGridEditAction.Commit && e.Row.Item is DatRow row)
             {
-                if (e.Row.Item is DatRow row)
-                {
-                    // Manually trigger the dirty flag logic.
-                    row.ParentClass?.ParentDocument?.ParentRef?.SetDirty();
-                }
+                row.ParentClass?.ParentDocument?.ParentRef?.SetDirty();
             }
         }
+        #endregion
 
-        #region Excel-like Functionality
-
+        #region Excel-like and Context Menu Functionality
         private void DataGrid_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (Keyboard.Modifiers == ModifierKeys.Control)
@@ -247,12 +184,44 @@ namespace NX_TOOL_MANAGER.Views
                     case Key.V: ExecutePaste(); e.Handled = true; break;
                 }
             }
-            else if (e.Key == Key.Delete)
-            {
-                ExecuteDelete();
-                e.Handled = true;
-            }
+            else if (e.Key == Key.Delete) { ExecuteDelete(); e.Handled = true; }
         }
+
+        private void AddRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (_current == null) return;
+
+            var newRow = new DatRow { ParentClass = _current };
+
+            if (!string.IsNullOrEmpty(MasterLibRef))
+            {
+                newRow.Set("LIBRF", MasterLibRef);
+
+                if (MasterClassName == "HOLDER")
+                {
+                    newRow.Set("RTYPE", "2");
+                }
+                else
+                {
+                    newRow.Set("T", "1");
+                    string stype = MasterClassName.ToUpperInvariant() switch
+                    {
+                        "MILL_FORM" => "0",
+                        "STEP_DRILL" => "1",
+                        "TURN_FORM" => "2",
+                        _ => "0"
+                    };
+                    newRow.Set("STYPE", stype);
+                }
+            }
+
+            _current.Rows.Add(newRow);
+            DataGrid.SelectedItem = newRow;
+            DataGrid.ScrollIntoView(newRow);
+        }
+
+        private void Copy_Click(object sender, RoutedEventArgs e) => ExecuteCopy();
+        private void Paste_Click(object sender, RoutedEventArgs e) => ExecutePaste();
 
         private void ExecuteCopy()
         {
@@ -262,18 +231,14 @@ namespace NX_TOOL_MANAGER.Views
             var groupedByRow = selectedCells.GroupBy(c => c.Item).OrderBy(g => DataGrid.Items.IndexOf(g.Key));
             foreach (var rowGroup in groupedByRow)
             {
-                var orderedCells = rowGroup.OrderBy(c => c.Column.DisplayIndex);
-                sb.AppendLine(string.Join("\t", orderedCells.Select(GetCellText)));
+                sb.AppendLine(string.Join("\t", rowGroup.OrderBy(c => c.Column.DisplayIndex).Select(GetCellText)));
             }
             Clipboard.SetText(sb.ToString().TrimEnd());
         }
 
         private void ExecuteDelete()
         {
-            foreach (var cellInfo in DataGrid.SelectedCells)
-            {
-                SetCellValue(cellInfo, string.Empty);
-            }
+            foreach (var cellInfo in DataGrid.SelectedCells) { SetCellValue(cellInfo, string.Empty); }
             DataGrid.Items.Refresh();
         }
 
@@ -290,11 +255,7 @@ namespace NX_TOOL_MANAGER.Views
             int startColIndex = startCell.Column.DisplayIndex;
             if (clipboardData.Length == 1 && clipboardData[0].Length == 1)
             {
-                string valueToPaste = clipboardData[0][0];
-                foreach (var cell in DataGrid.SelectedCells)
-                {
-                    SetCellValue(cell, valueToPaste);
-                }
+                foreach (var cell in DataGrid.SelectedCells) { SetCellValue(cell, clipboardData[0][0]); }
             }
             else
             {
@@ -320,45 +281,34 @@ namespace NX_TOOL_MANAGER.Views
             {
                 if (column.Binding is Binding binding && binding.Path.Path.Contains("Map"))
                 {
-                    string path = binding.Path.Path;
-                    string key = path.Substring(path.IndexOf('[') + 1).TrimEnd(']');
-                    // Use the custom Set method to ensure the dirty flag is triggered.
+                    string key = binding.Path.Path.Substring(binding.Path.Path.IndexOf('[') + 1).TrimEnd(']');
                     row.Set(key, value);
                 }
             }
         }
-
         private string GetCellText(DataGridCellInfo cellInfo)
         {
-            if (cellInfo.Column.GetCellContent(cellInfo.Item) is TextBlock tb)
-            {
-                return tb.Text;
-            }
-            return string.Empty;
+            return (cellInfo.Column.GetCellContent(cellInfo.Item) as TextBlock)?.Text ?? string.Empty;
         }
-
         #endregion
 
-        // --- Helper Methods ---
-        public static T FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+        private static T FindVisualParent<T>(DependencyObject child) where T : DependencyObject
         {
             DependencyObject parentObject = VisualTreeHelper.GetParent(child);
             if (parentObject == null) return null;
-            T parent = parentObject as T;
-            return parent ?? FindVisualParent<T>(parentObject);
+            return (parentObject is T parent) ? parent : FindVisualParent<T>(parentObject);
         }
 
-        private void Copy_Click(object sender, RoutedEventArgs e)
+        private void DataGrid_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e) { /* Placeholder */ }
+
+        private static DatClass ResolveClassFromContext(object ctx)
         {
-            ExecuteCopy();
-        }
-        private void Paste_Click(object sender, RoutedEventArgs e)
-        {
-            ExecutePaste();
-        }
-        private void DataGrid_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            // Placeholder for your existing logic
+            if (ctx is DatClass c) return c;
+            if (ctx is DatDocumentRef doc)
+            {
+                return doc.Document?.Classes.FirstOrDefault();
+            }
+            return null;
         }
     }
 }

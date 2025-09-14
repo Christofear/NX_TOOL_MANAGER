@@ -1,14 +1,17 @@
-﻿using System.Configuration;
-using System.Data;
+﻿using NX_TOOL_MANAGER.Views;
+using System;
 using System.Windows;
 
-namespace NX_TOOL_MANAGER
+public partial class App : Application
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
-    public partial class App : Application
+    protected override void OnStartup(StartupEventArgs e)
     {
-    }
+        base.OnStartup(e);
 
+        // This simplified version only creates and shows the main window.
+        // It does not perform any automatic library loading.
+        var mainWindow = new MainWindow();
+        mainWindow.Show();
+    }
 }
+

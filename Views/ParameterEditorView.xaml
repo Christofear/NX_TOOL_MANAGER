@@ -3,22 +3,107 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:NX_TOOL_MANAGER.Views"
+             xmlns:views="clr-namespace:NX_TOOL_MANAGER.Views"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="400"
+             d:DesignHeight="450" d:DesignWidth="300"
              Background="#1E1E1E"
-             d:DataContext="{d:DesignInstance Type=local:ParameterEditorView, IsDesignTimeCreatable=True}">
+             d:DataContext="{d:DesignInstance Type=views:ParameterEditorView, IsDesignTimeCreatable=True}">
     <UserControl.Resources>
-        <!-- The color-coded TabControl styles -->
         <Style TargetType="{x:Type TabControl}">
-            <!-- ... (style is unchanged) ... -->
-        </Style>
-        <Style TargetType="{x:Type TabItem}">
-            <!-- ... (style is unchanged) ... -->
-        </Style>
-        <local:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TabControl}">
+                        <Grid KeyboardNavigation.TabNavigation="Local">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
 
-        <!-- Parameter List Styles -->
+                            <TabPanel Name="HeaderPanel" 
+                                      Grid.Row="0" 
+                                      Panel.ZIndex="1" 
+                                      Margin="2,2,2,0" 
+                                      IsItemsHost="True" 
+                                      KeyboardNavigation.TabIndex="1" 
+                                      Background="Transparent"/>
+
+                            <Border Name="ContentPanel" Grid.Row="1" BorderBrush="#4A4A4A" BorderThickness="0,1,0,0" Background="{TemplateBinding Background}" KeyboardNavigation.DirectionalNavigation="Contained" KeyboardNavigation.TabIndex="2" KeyboardNavigation.TabNavigation="Local">
+                                <ContentPresenter Name="PART_SelectedContentHost" Margin="{TemplateBinding Padding}" ContentSource="SelectedContent"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="{x:Type TabItem}">
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TabItem}">
+                        <Border Name="Border" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="0,0,0,2" Margin="0,0,2,0">
+                            <ContentPresenter x:Name="ContentSite" 
+                                              VerticalAlignment="Center" 
+                                              HorizontalAlignment="Center" 
+                                              ContentSource="Header" 
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True" />
+                                    <Condition Binding="{Binding Header, RelativeSource={RelativeSource Self}}" Value="Tool" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#3399FF"/>
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True" />
+                                    <Condition Binding="{Binding Header, RelativeSource={RelativeSource Self}}" Value="Segments" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#EF5350"/>
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True" />
+                                    <Condition Binding="{Binding Header, RelativeSource={RelativeSource Self}}" Value="Holder" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#FFA726"/>
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True" />
+                                    <Condition Binding="{Binding Header, RelativeSource={RelativeSource Self}}" Value="Shank" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#66BB6A"/>
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True" />
+                                    <Condition Binding="{Binding Header, RelativeSource={RelativeSource Self}}" Value="More" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="White"/>
+                            </MultiDataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="TextBlock" x:Key="LabelStyle">
             <Setter Property="Foreground" Value="#CCCCCC"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -85,7 +170,7 @@
         <TabControl>
             <TabItem Header="Tool">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
-                    <ItemsControl ItemsSource="{Binding ToolParameterCategories}">
+                    <ItemsControl ItemsSource="{Binding ParameterCategories, RelativeSource={RelativeSource AncestorType=views:ParameterEditorView}}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Expander Header="{Binding CategoryName}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
@@ -110,18 +195,20 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem Header="Holder" Visibility="{Binding HasHolder, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <local:ShapeEditorView ShapeRows="{Binding HolderShapeRows}" />
+            <TabItem Header="Segments" 
+                     Visibility="{Binding SegmentProfileTabVisibility, RelativeSource={RelativeSource AncestorType=views:ParameterEditorView}}">
+                <ContentControl Content="{Binding SegmentEditorControl, RelativeSource={RelativeSource AncestorType=views:ParameterEditorView}}"/>
             </TabItem>
 
-            <TabItem Header="Shank" Visibility="{Binding HasShank, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <local:ShapeEditorView ShapeRows="{Binding ShankShapeRows}" />
+            <TabItem Header="Holder">
+                <TextBlock Text="Holder Shape Data" Foreground="White" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </TabItem>
-
+            <TabItem Header="Shank">
+                <TextBlock Text="Shank Shape Data" Foreground="White" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </TabItem>
             <TabItem Header="More">
-                <TextBlock Text="Trackpoints and other parameters will go here." Foreground="White" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <TextBlock Text="More Parameters (e.g., Trackpoints)" Foreground="White" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </TabItem>
         </TabControl>
     </Grid>
 </UserControl>
-

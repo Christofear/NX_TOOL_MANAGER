@@ -1,7 +1,7 @@
 ﻿<Window x:Class="NX_TOOL_MANAGER.Views.DefinitionFilesDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Height="Auto" Width="600"
+        Height="Auto" Width="650"
         FontFamily="Segoe UI"
         Background="#1E1E1E"
         Foreground="White"
@@ -11,7 +11,7 @@
         SizeToContent="Height">
 
     <Window.Resources>
-        <!-- Reusing styles similar to your LoadLibraryDialog for consistency -->
+        <!-- (All existing styles are unchanged) -->
         <Style x:Key="CloseButtonStyle" TargetType="Button">
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -35,7 +35,6 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-
         <Style x:Key="BrowseButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#333333"/>
             <Setter Property="Foreground" Value="White"/>
@@ -61,9 +60,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
         <Style x:Key="ActionButtonStyle" TargetType="Button" BasedOn="{StaticResource BrowseButtonStyle}"/>
-
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="#2A2A2A"/>
             <Setter Property="Foreground" Value="#CCCCCC"/>
@@ -71,6 +68,7 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="5"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <EventSetter Event="PreviewMouseDown" Handler="TextBox_PreviewMouseDown"/>
         </Style>
     </Window.Resources>
 
@@ -90,6 +88,8 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <!-- FIX: Added a new row for the Segmented Tool definitions -->
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
@@ -115,7 +115,12 @@
                 <TextBox x:Name="TrackpointsDefTextBox" Grid.Row="3" Grid.Column="1" Text="{Binding TrackpointsDefPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
                 <Button Grid.Row="3" Grid.Column="2" Content="Browse..." Style="{StaticResource BrowseButtonStyle}" Click="PickTrackpointsDef_Click" Margin="8,0,0,8"/>
 
-                <StackPanel Grid.Row="4" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+                <!-- FIX: Added a new row of controls for the Segmented Tool definitions -->
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Segmented Tool Definitions:" VerticalAlignment="Center" Margin="0,0,12,8" Foreground="#CCCCCC"/>
+                <TextBox x:Name="SegmentedDefTextBox" Grid.Row="4" Grid.Column="1" Text="{Binding SegmentedDefPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                <Button Grid.Row="4" Grid.Column="2" Content="Browse..." Style="{StaticResource BrowseButtonStyle}" Click="PickSegmentedDef_Click" Margin="8,0,0,8"/>
+
+                <StackPanel Grid.Row="5" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
                     <Button Content="Cancel" IsCancel="True" Style="{StaticResource ActionButtonStyle}" Margin="0,0,8,0"/>
                     <Button Content="OK" IsDefault="True" Style="{StaticResource ActionButtonStyle}" Click="Ok_Click"/>
                 </StackPanel>
@@ -123,3 +128,4 @@
         </DockPanel>
     </Border>
 </Window>
+

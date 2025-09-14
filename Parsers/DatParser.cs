@@ -14,13 +14,10 @@ namespace NX_TOOL_MANAGER.Services
                 FileKind.Tools => ToolDatParser.Parse(lines),
                 FileKind.Holders => HolderDatParser.Parse(lines),
                 FileKind.Shanks => ShankDatParser.Parse(lines),
-                // THE FIX: Now calls the new, dedicated parser for Trackpoint files.
                 FileKind.Trackpoints => TrackpointDatParser.Parse(lines),
+                FileKind.SegmentedTools => SegmentedToolDatParser.Parse(lines),
                 _ => ToolDatParser.Parse(lines) // Default fallback
             };
-
-        // This method overload is preserved for convenience where the kind is not yet known.
-        public static DatDocument Parse(FileKind kind, IEnumerable<string> lines) => Parse(lines, kind);
 
         public static FileKind DetectKind(string path, IEnumerable<string> lines = null)
         {
@@ -30,6 +27,7 @@ namespace NX_TOOL_MANAGER.Services
             if (name.Contains("holder")) return FileKind.Holders;
             if (name.Contains("shank")) return FileKind.Shanks;
             if (name.Contains("trackpoint")) return FileKind.Trackpoints;
+            if (name.Contains("segmented_tool")) return FileKind.SegmentedTools;
             if (name.Contains("tool")) return FileKind.Tools;
 
             // If the name is ambiguous, fall back to content sniffing.
@@ -39,8 +37,17 @@ namespace NX_TOOL_MANAGER.Services
 
         private static FileKind DetectKindFromContent(IEnumerable<string> lines)
         {
-            // Look only at FORMAT lines; they carry the schema
-            foreach (var ln in lines)
+            var lineList = lines.ToList();
+
+            // First, check for header comments which are very reliable identifiers.
+            var content = string.Join("\n", lineList).ToUpperInvariant();
+            if (content.Contains("HOLDER_DATABASE.DAT")) return FileKind.Holders;
+            if (content.Contains("SHANK_DATABASE.DAT")) return FileKind.Shanks;
+            if (content.Contains("TRACKPOINT_DATABASE.DAT")) return FileKind.Trackpoints;
+            if (content.Contains("SEGMENTED_TOOL_DATABASE.DAT")) return FileKind.SegmentedTools;
+
+            // If no header comment is found, fall back to sniffing FORMAT lines.
+            foreach (var ln in lineList)
             {
                 var t = ln.TrimStart('#', ' ', '\t');
                 if (!t.StartsWith("FORMAT", StringComparison.OrdinalIgnoreCase)) continue;
@@ -55,6 +62,10 @@ namespace NX_TOOL_MANAGER.Services
 
                 if (body.Contains("DEFTYPE"))
                     return FileKind.Trackpoints;
+
+                // THE FIX: Added content sniffing for segmented tools based on a unique keyword.
+                if (body.Contains("SWEEP"))
+                    return FileKind.SegmentedTools;
             }
 
             // Default to tools if nothing clear is found

@@ -1,8 +1,13 @@
-<UserControl x:Class="NX_TOOL_MANAGER.Views.LibraryGridView"
+﻿<UserControl x:Class="NX_TOOL_MANAGER.Views.SegmentEditor"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="600"
+             Background="#1E1E1E">
     <UserControl.Resources>
-        <!-- (All existing styles are unchanged) -->
+        <!-- All styles for scrollbar and toolbar are unchanged from your working version -->
         <Style x:Key="ScrollBarThumbStyle" TargetType="{x:Type Thumb}">
             <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Setter Property="OverridesDefaultStyle" Value="true"/>
@@ -24,27 +29,10 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
         <Style TargetType="{x:Type ScrollBar}">
             <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Setter Property="OverridesDefaultStyle" Value="true"/>
             <Style.Triggers>
-                <Trigger Property="Orientation" Value="Horizontal">
-                    <Setter Property="Height" Value="12" />
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="{x:Type ScrollBar}">
-                                <Grid x:Name="GridRoot" Height="{TemplateBinding Height}" Background="Transparent">
-                                    <Track x:Name="PART_Track" IsDirectionReversed="False">
-                                        <Track.Thumb>
-                                            <Thumb Style="{StaticResource ScrollBarThumbStyle}" Margin="0,2" />
-                                        </Track.Thumb>
-                                    </Track>
-                                </Grid>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Trigger>
                 <Trigger Property="Orientation" Value="Vertical">
                     <Setter Property="Width" Value="12"/>
                     <Setter Property="Template">
@@ -63,61 +51,76 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="ToolBarButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="ToolTipService.Placement" Value="Right"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="3">
+                            <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#444444"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#555555"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#666666"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
-    <Grid>
+    <DockPanel>
+        <!-- THE FIX: The Border element that contained the title has been removed -->
+
+        <!-- Toolbar is unchanged -->
+        <StackPanel DockPanel.Dock="Right" Background="#1E1E1E" VerticalAlignment="Top" Margin="2,0,0,0">
+            <Button Style="{StaticResource ToolBarButtonStyle}" Content="&#xE710;" ToolTip="Add New Segment" Click="AddRow_Click"/>
+            <Button Style="{StaticResource ToolBarButtonStyle}" Content="&#xE74D;" ToolTip="Delete Selected Segment(s)" Click="DeleteRow_Click"/>
+            <Separator Height="10" Background="Transparent" BorderThickness="0"/>
+            <Button Style="{StaticResource ToolBarButtonStyle}" Content="&#xE70E;" ToolTip="Move Segment Up" Click="MoveUp_Click"/>
+            <Button Style="{StaticResource ToolBarButtonStyle}" Content="&#xE70D;" ToolTip="Move Segment Down" Click="MoveDown_Click"/>
+        </StackPanel>
+
+        <!-- DataGrid and all its styles are unchanged -->
         <DataGrid x:Name="DataGrid"
+                  ItemsSource="{Binding Rows}"
                   AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
                   HeadersVisibility="All"
                   GridLinesVisibility="All"
-                  RowHeaderWidth="40"
-                  EnableRowVirtualization="True"
-                  EnableColumnVirtualization="True"
-                  PreviewMouseRightButtonDown="DataGrid_PreviewMouseRightButtonDown"
-                  ScrollViewer.CanContentScroll="True"
-                  ScrollViewer.HorizontalScrollBarVisibility="Visible"
-                  ScrollViewer.VerticalScrollBarVisibility="Visible"
-                  AlternationCount="2"
-                  SelectionUnit="Cell"
+                  SelectionUnit="FullRow"
                   SelectionMode="Extended"
-                  PreviewKeyDown="DataGrid_PreviewKeyDown">
+                  AlternationCount="2"
+                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                  CanUserSortColumns="False"
+                  ColumnWidth="*">
 
-            <DataGrid.Resources>
-                <Style TargetType="{x:Type ContextMenu}">
-                    <Setter Property="OverridesDefaultStyle" Value="True"/>
-                    <Setter Property="SnapsToDevicePixels" Value="True"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="{x:Type ContextMenu}">
-                                <Border Background="#2D2D2D" BorderBrush="#4A4A4A" BorderThickness="1">
-                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
-                                </Border>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-                <Style TargetType="{x:Type MenuItem}">
-                    <Setter Property="Foreground" Value="White"/>
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="Padding" Value="8,6"/>
-                    <Style.Triggers>
-                        <Trigger Property="IsHighlighted" Value="True">
-                            <Setter Property="Background" Value="#3E3E42"/>
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </DataGrid.Resources>
-
+            <!-- Styles now match LibraryGridView exactly -->
             <DataGrid.Style>
                 <Style TargetType="DataGrid">
                     <Setter Property="Background" Value="#2D2D2D"/>
                     <Setter Property="Foreground" Value="#F0F0F0"/>
                     <Setter Property="BorderBrush" Value="#4A4A4A"/>
+                    <Setter Property="BorderThickness" Value="0"/>
                     <Setter Property="HorizontalGridLinesBrush" Value="#4A4A4A"/>
                     <Setter Property="VerticalGridLinesBrush" Value="#4A4A4A"/>
                 </Style>
             </DataGrid.Style>
-
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Setter Property="Background" Value="#2D2D2D"/>
@@ -132,7 +135,6 @@
                     </Style.Triggers>
                 </Style>
             </DataGrid.RowStyle>
-
             <DataGrid.CellStyle>
                 <Style TargetType="DataGridCell">
                     <Setter Property="Padding" Value="4"/>
@@ -146,7 +148,6 @@
                     </Style.Triggers>
                 </Style>
             </DataGrid.CellStyle>
-
             <DataGrid.ColumnHeaderStyle>
                 <Style TargetType="DataGridColumnHeader">
                     <Setter Property="Background" Value="#3E3E42"/>
@@ -155,50 +156,17 @@
                     <Setter Property="BorderThickness" Value="0,0,1,1"/>
                     <Setter Property="Padding" Value="6,4"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="DataGridColumnHeader">
-                                <Grid>
-                                    <Border Background="{TemplateBinding Background}"
-                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                            BorderThickness="{TemplateBinding BorderThickness}"
-                                            Padding="{TemplateBinding Padding}">
-                                        <ContentPresenter HorizontalAlignment="Center"
-                                                          VerticalAlignment="Center"/>
-                                    </Border>
-                                    <Path x:Name="SortArrow"
-                                          HorizontalAlignment="Right"
-                                          VerticalAlignment="Center"
-                                          Margin="0,0,8,0"
-                                          Width="8"
-                                          Height="6"
-                                          Fill="Transparent"
-                                          Stretch="Fill"/>
-                                </Grid>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
                 </Style>
             </DataGrid.ColumnHeaderStyle>
-
             <DataGrid.RowHeaderStyle>
                 <Style TargetType="DataGridRowHeader">
                     <Setter Property="Background" Value="#3E3E42"/>
                     <Setter Property="BorderBrush" Value="#4A4A4A"/>
                     <Setter Property="BorderThickness" Value="0,0,1,1"/>
-                    <EventSetter Event="PreviewMouseLeftButtonDown" Handler="DataGridRowHeader_Click"/>
+                    <Setter Property="Width" Value="0"/>
                 </Style>
             </DataGrid.RowHeaderStyle>
-
-            <DataGrid.ContextMenu>
-                <ContextMenu>
-                    <!-- THE FIX: Added "Add Row" menu item -->
-                    <MenuItem Header="Add Row" Click="AddRow_Click"/>
-                    <Separator/>
-                    <MenuItem Header="Copy" Click="Copy_Click"/>
-                    <MenuItem Header="Paste" Click="Paste_Click"/>
-                </ContextMenu>
-            </DataGrid.ContextMenu>
         </DataGrid>
-    </Grid>
+    </DockPanel>
 </UserControl>
+

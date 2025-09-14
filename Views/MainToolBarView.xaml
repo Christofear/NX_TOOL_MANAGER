@@ -147,8 +147,8 @@
     </UserControl.Resources>
 
     <ToolBar>
-        <Button Style="{StaticResource SquareNavButton}" Margin="10,0,8,0" Content="Load Lib" Tag="&#xE8E5;" Click="LoadLibrary_Click"/>
-        <Button Style="{StaticResource SquareNavButton}" Content="Save Lib" Tag="&#xE74E;" IsEnabled="{Binding IsSaveEnabled}" Click="SaveLibrary_Click"/>
+        <Button Style="{StaticResource SquareNavButton}" Margin="10,0,8,0" Content="Library" Tag="&#xE8E5;" Click="LoadLibrary_Click"/>
+        <Button Style="{StaticResource SquareNavButton}" Content="Save" Tag="&#xE74E;" IsEnabled="{Binding IsSaveEnabled}" Click="SaveLibrary_Click"/>
         <Separator Style="{StaticResource ToolBarSeparatorStyle}"/>
 
         <!-- Navigation Buttons -->
